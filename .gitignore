@@ -1,0 +1,10 @@
+# Exclude our large vocable file
+# Normal users will extract this from the .tar.gz
+/orb_slam/Data/ORBvoc.yml
+
+# Exclude build folders
+/orb_slam/build/
+/g2o/build/
+
+# Exclude stat file
+/orb_slam/KeyFrameTrajectory.txt
