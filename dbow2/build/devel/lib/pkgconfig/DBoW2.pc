@@ -1,0 +1,8 @@
+prefix=/home/patrick/catkin_ws/src/orb_slam/DBoW2/build/devel
+
+Name: DBoW2
+Description: Description of DBoW2
+Version: 0.0.0
+Cflags: 
+Libs: -L/home/patrick/catkin_ws/src/orb_slam/DBoW2/build/devel/lib 
+Requires: 

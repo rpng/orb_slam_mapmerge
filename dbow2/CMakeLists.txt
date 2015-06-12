@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(DBoW2)
+project(dbow2)
 
 find_package(catkin REQUIRED)
 
@@ -8,9 +8,8 @@ catkin_package(
 )
 
 include_directories(
-  include
-  ${PROJECT_SOURCE_DIR}/DBoW2
-  ${PROJECT_SOURCE_DIR}/DUtils
+  ${PROJECT_SOURCE_DIR}/dbow2/DBoW2
+  ${PROJECT_SOURCE_DIR}/dbow2/DUtils
 )
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
@@ -41,6 +40,6 @@ find_package(OpenCV REQUIRED)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
-add_library(DBoW2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
-target_link_libraries(DBoW2 ${OpenCV_LIBS})
+add_library(dbow2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
+target_link_libraries(dbow2 ${OpenCV_LIBS})
 

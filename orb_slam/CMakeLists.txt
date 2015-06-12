@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
   g2o
-  DBoW2
+  dbow2
 )
 
 #LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
@@ -59,7 +59,7 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBS}
 #  cholmod
-  DBoW2
+  dbow2
 #  g2o_core
 #  g2o_solver_cholmod
 #  g2o_solver_dense
