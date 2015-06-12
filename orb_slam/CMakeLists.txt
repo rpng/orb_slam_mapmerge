@@ -11,17 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   dbow2
 )
 
-#LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
-#find_package(Cholmod REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 catkin_package()
 
-#message(*************************)
-#message(${catkin_INCLUDE_DIRS})
-#message(*************************)
-
-
+# Our includes
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
@@ -33,8 +27,7 @@ include_directories(
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
-#add_subdirectory(Thirdparty/DBoW2)
-
+# Files that we need to build
 add_executable(${PROJECT_NAME}
   src/main.cc
   src/Tracking.cc
@@ -55,6 +48,8 @@ add_executable(${PROJECT_NAME}
   src/Sim3Solver.cc
   src/Initializer.cc
 )
+
+# What librarys we need
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBS}
