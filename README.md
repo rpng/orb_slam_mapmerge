@@ -50,7 +50,7 @@ In order to compile g2o you will need to have installed CHOLMOD, BLAS, LAPACK an
 
 ##2.4 DBoW2 (included)
 We make use of some components of the DBoW2 library for place recognition and feature matching. We include a modified copy of the library
-including only the components we need and also some modifications that are listed in `/orb_slam/Thirdparty/DBoW2/LICENSE.txt`. 
+including only the components we need and also some modifications that are listed in `/dbow2/LICENSE.txt`. 
 It only depends on OpenCV, but it should be included in the ROS distribution.
 
 
@@ -60,35 +60,7 @@ It only depends on OpenCV, but it should be included in the ROS distribution.
 
 2. In your ROS package path (check your environment variable `ROS_PACKAGE_PATH`) clone this repository:
 
-		git clone https://github.com/raulmur/ORB_SLAM.git ORB_SLAM
-
-3. Build g2o. Go into `/g2o/` and execute:
-
-		mkdir build
-		cd build
-		cmake .. -DCMAKE_BUILD_TYPE=Release
-		make 
-
-	*Tip: To achieve the best performance in your computer, set your favorite compilation flags in line 97 and 98 of* `/g2o/CMakeLists.txt` 
-		  (by default -03 -march=native)
-
-4. Build DBoW2. Go into Thirdparty/DBoW2/ and execute:
-
-		mkdir build
-		cd build
-		cmake .. -DCMAKE_BUILD_TYPE=Release
-		make  
-
-	*Tip: Set your favorite compilation flags in line 4 and 5 of* `Thirdparty/DBoW2/CMakeLists.txt` (by default -03 -march=native)
-
-5. Build ORB_SLAM. In the ORB_SLAM root execute:
-
-		mkdir build
-		cd build
-		cmake .. -DROS_BUILD_TYPE=Release
-		make
-
-	*Tip: Set your favorite compilation flags in line 12 and 13 of* `Thirdparty/DBoW2/CMakeLists.txt` (by default -03 -march=native)
+		git clone https://github.com/udel-robotics/orb_slam.git orb_slam
 
 #4. Usage
 
