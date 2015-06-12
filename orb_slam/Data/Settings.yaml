@@ -33,10 +33,10 @@ ORBextractor.scaleFactor: 1.2
 ORBextractor.nLevels: 8
 
 # ORB Extractor: Fast threshold (lower less restrictive)			
-ORBextractor.fastTh: 20
+ORBextractor.fastTh: 10
 
 # ORB Extractor: Score to sort features. 0 -> Harris Score, 1 -> FAST Score			
-ORBextractor.nScoreType: 1
+ORBextractor.nScoreType: 0
 
 
 # Constant Velocity Motion Model (0 - disabled, 1 - enabled [recommended])

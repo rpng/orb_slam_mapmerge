@@ -5,6 +5,7 @@
 # Exclude build folders
 /orb_slam/build/
 /g2o/build/
+/DBoW2/build/
 
 # Exclude stat file
 /orb_slam/KeyFrameTrajectory.txt

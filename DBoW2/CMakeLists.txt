@@ -1,3 +1,18 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(DBoW2)
+
+find_package(catkin REQUIRED)
+
+catkin_package(
+  INCLUDE_DIRS .
+)
+
+include_directories(
+  include
+  ${PROJECT_SOURCE_DIR}/DBoW2
+  ${PROJECT_SOURCE_DIR}/DUtils
+)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 
