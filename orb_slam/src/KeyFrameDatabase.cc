@@ -21,7 +21,7 @@
 #include "KeyFrameDatabase.h"
 
 #include "KeyFrame.h"
-#include "DBoW2/BowVector.h"
+#include "dbow2/BowVector.h"
 #include <ros/ros.h>
 
 using namespace std;

@@ -24,8 +24,8 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include<boost/thread.hpp>
-#include<ros/ros.h>
+#include <boost/thread.hpp>
+#include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 
 namespace ORB_SLAM

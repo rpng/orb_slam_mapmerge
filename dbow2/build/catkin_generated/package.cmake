@@ -1,7 +1,0 @@
-set(_CATKIN_CURRENT_PACKAGE "DBoW2")
-set(DBoW2_MAINTAINER "Dorian Galvez-Lopez <bence@todo.todo>")
-set(DBoW2_DEPRECATED "")
-set(DBoW2_VERSION "0.0.0")
-set(DBoW2_BUILD_DEPENDS )
-set(DBoW2_RUN_DEPENDS )
-set(DBoW2_BUILDTOOL_DEPENDS "catkin")

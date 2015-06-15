@@ -1,18 +1,20 @@
 %YAML:1.0
 
-# Camera Parameters. Adjust them!
+Camera.name: camStick
+# Camera Parameters for camera model Logitech Quickcam Pro:
+# idVendor: 046d  idProduct:0991
 
 # Camera calibration parameters (OpenCV) 
-Camera.fx: 609.2855
-Camera.fy: 609.3422 
-Camera.cx: 351.4274
-Camera.cy: 237.7324
+Camera.fx: 534.8929021
+Camera.fy: 528.9744415
+Camera.cx: 321.3744289
+Camera.cy: 233.0324889
 
 # Camera distortion paremeters (OpenCV) --
-Camera.k1: -0.3492
-Camera.k2: 0.1363
-Camera.p1: 0.0
-Camera.p2: 0.0
+Camera.k1: 0.052153148
+Camera.k2: -0.153511405
+Camera.p1: 0.000825220
+Camera.p2: -0.001619228
 
 # Camera frames per second 
 Camera.fps: 30.0
@@ -21,23 +23,26 @@ Camera.fps: 30.0
 Camera.RGB: 1
 
 #--------------------------------------------------------------------------------------------
-### Changing the parameters below could seriously degradate the performance of the system
+### Changing the parameters below could seriously degrade the performance of the system
 
 # ORB Extractor: Number of features per image
-ORBextractor.nFeatures: 1000
+ORBextractor.nFeatures: 2500
 
-# ORB Extractor: Scale factor between levels in the scale pyramid 	
-ORBextractor.scaleFactor: 1.2
+# ORB Extractor: Scale factor between levels in the scale pyramid   
+# default: 1.2
+ORBextractor.scaleFactor: 1.18
 
-# ORB Extractor: Number of levels in the scale pyramid	
-ORBextractor.nLevels: 8
+# ORB Extractor: Number of levels in the scale pyramid  
+# default: 8
+ORBextractor.nLevels: 10
 
-# ORB Extractor: Fast threshold (lower less restrictive)			
-ORBextractor.fastTh: 10
+# ORB Extractor: Fast threshold (lower less restrictive)
+# default: 20
+ORBextractor.fastTh: 8
 
-# ORB Extractor: Score to sort features. 0 -> Harris Score, 1 -> FAST Score			
-ORBextractor.nScoreType: 0
-
+# ORB Extractor: Score to sort features. 0 -> Harris Score, 1 -> FAST Score
+# default: 1
+ORBextractor.nScoreType: 1
 
 # Constant Velocity Motion Model (0 - disabled, 1 - enabled [recommended])
 UseMotionModel: 1

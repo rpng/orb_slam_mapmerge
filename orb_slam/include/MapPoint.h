@@ -21,11 +21,11 @@
 #ifndef MAPPOINT_H
 #define MAPPOINT_H
 
-#include<opencv2/core/core.hpp>
-#include"KeyFrame.h"
-#include"Map.h"
+#include <opencv2/core/core.hpp>
+#include "KeyFrame.h"
+#include "Map.h"
 
-#include<boost/thread.hpp>
+#include <boost/thread.hpp>
 
 
 namespace ORB_SLAM

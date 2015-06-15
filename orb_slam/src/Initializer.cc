@@ -20,7 +20,7 @@
 
 #include "Initializer.h"
 
-#include "DUtils/Random.h"
+#include "dutils/Random.h"
 
 #include "Optimizer.h"
 #include "ORBmatcher.h"

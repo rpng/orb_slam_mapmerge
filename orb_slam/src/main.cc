@@ -18,13 +18,13 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include<iostream>
-#include<fstream>
-#include<ros/ros.h>
-#include<ros/package.h>
-#include<boost/thread.hpp>
+#include <iostream>
+#include <fstream>
+#include <ros/ros.h>
+#include <ros/package.h>
+#include <boost/thread.hpp>
 
-#include<opencv2/core/core.hpp>
+#include <opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FramePublisher.h"

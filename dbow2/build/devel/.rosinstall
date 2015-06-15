@@ -1,2 +1,0 @@
-- setup-file:
-    local-name: /home/patrick/catkin_ws/src/orb_slam/DBoW2/build/devel/setup.sh

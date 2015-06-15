@@ -11,9 +11,27 @@ find_package(catkin REQUIRED COMPONENTS
   dbow2
 )
 
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+find_package(Cholmod REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(dbow2 REQUIRED)
 
-catkin_package()
+
+catkin_package(
+  CATKIN_DEPENDS
+    roscpp
+    tf
+    cv_bridge
+    sensor_msgs
+    image_transport
+    g2o
+    dbow2
+  DEPENDS
+    Cholmod
+    Eigen3
+  LIBRARIES
+    orb_slam
+)
 
 # Our includes
 include_directories(
@@ -54,7 +72,7 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBS}
 #  cholmod
-  dbow2
+#  dbow2
 #  g2o_core
 #  g2o_solver_cholmod
 #  g2o_solver_dense

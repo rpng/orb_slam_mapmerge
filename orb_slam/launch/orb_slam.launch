@@ -2,7 +2,7 @@
 
 	<node pkg="image_view" type="image_view" name="image_view" respawn="false" output="log">
 		<remap from="/image" to="/ORB_SLAM/Frame" />
-		<param name="autosize" value="true"/>
+		<param name="autosize" value="false"/>
 	</node>
 
 	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find orb_slam)/Data/rviz.rviz" output="log"/>

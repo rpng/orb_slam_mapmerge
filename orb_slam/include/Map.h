@@ -23,9 +23,9 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
-#include<set>
+#include <set>
 
-#include<boost/thread.hpp>
+#include <boost/thread.hpp>
 
 
 

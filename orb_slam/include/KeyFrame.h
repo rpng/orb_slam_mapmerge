@@ -23,13 +23,13 @@
 #define KEYFRAME_H
 
 #include "MapPoint.h"
-#include "DBoW2/BowVector.h"
-#include "DBoW2/FeatureVector.h"
+#include "dbow2/BowVector.h"
+#include "dbow2/FeatureVector.h"
 #include "ORBVocabulary.h"
 #include "Frame.h"
 #include "KeyFrameDatabase.h"
 
-#include<boost/thread.hpp>
+#include <boost/thread.hpp>
 
 
 namespace ORB_SLAM
