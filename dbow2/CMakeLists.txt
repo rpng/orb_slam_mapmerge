@@ -2,44 +2,46 @@ cmake_minimum_required(VERSION 2.8.3)
 project(dbow2)
 
 find_package(catkin REQUIRED)
-
-catkin_package(
-  INCLUDE_DIRS .
-)
+find_package(OpenCV REQUIRED)
 
 include_directories(
-  ${PROJECT_SOURCE_DIR}/dbow2/DBoW2
-  ${PROJECT_SOURCE_DIR}/dbow2/DUtils
+  include
+  ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native ")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
+catkin_package(
+  DEPENDS
+    OpenCV
+  INCLUDE_DIRS
+    include
+  LIBRARIES
+    ${PROJECT_NAME}_lib
+  )
 
-set(HDRS_DBOW2
-  DBoW2/BowVector.h
-  DBoW2/FORB.h 
-  DBoW2/FClass.h       
-  DBoW2/FeatureVector.h
-  DBoW2/ScoringObject.h   
-  DBoW2/TemplatedVocabulary.h)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 ")
+
 set(SRCS_DBOW2
-  DBoW2/BowVector.cpp
-  DBoW2/FORB.cpp      
-  DBoW2/FeatureVector.cpp
-  DBoW2/ScoringObject.cpp)
+  src/BowVector.cpp
+  src/FORB.cpp      
+  src/FeatureVector.cpp
+  src/ScoringObject.cpp)
 
-set(HDRS_DUTILS
-  DUtils/Random.h
-  DUtils/Timestamp.h)
 set(SRCS_DUTILS
-  DUtils/Random.cpp
-  DUtils/Timestamp.cpp)
-
-find_package(OpenCV REQUIRED)
+  src/dutils/Random.cpp
+  src/dutils/Timestamp.cpp)
 
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
-add_library(dbow2 SHARED ${SRCS_DBOW2} ${SRCS_DUTILS})
-target_link_libraries(dbow2 ${OpenCV_LIBS})
+add_library(
+  ${PROJECT_NAME}_lib SHARED 
+  ${SRCS_DBOW2} 
+  ${SRCS_DUTILS}
+)
 
+target_link_libraries(
+  ${PROJECT_NAME}_lib 
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+)
