@@ -1,9 +1,5 @@
 %YAML:1.0
 
-Camera.name: camStick
-# Camera Parameters for camera model Logitech Quickcam Pro:
-# idVendor: 046d  idProduct:0991
-
 # Camera calibration parameters (OpenCV) 
 Camera.fx: 534.8929021
 Camera.fy: 528.9744415
@@ -34,7 +30,7 @@ ORBextractor.scaleFactor: 1.18
 
 # ORB Extractor: Number of levels in the scale pyramid  
 # default: 8
-ORBextractor.nLevels: 10
+ORBextractor.nLevels: 15
 
 # ORB Extractor: Fast threshold (lower less restrictive)
 # default: 20
@@ -45,4 +41,4 @@ ORBextractor.fastTh: 8
 ORBextractor.nScoreType: 1
 
 # Constant Velocity Motion Model (0 - disabled, 1 - enabled [recommended])
-UseMotionModel: 1
+UseMotionModel: 0
