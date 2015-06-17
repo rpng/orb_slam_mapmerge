@@ -77,7 +77,7 @@ void LoopClosing::Run()
 
         ResetIfRequested();
         // Note, not sure why this should sleep here
-        //r.sleep();
+        r.sleep();
     }
 }
 

@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         vector<float> q = ORB_SLAM::Converter::toQuaternion(R);
         cv::Mat t = pKF->GetCameraCenter();
         // Timestamp: t
-        // Posistion: x, y, z
+        // Position: x, y, z
         // Quaternions: q0, q1, q2, q3
         f << setprecision(6) << pKF->mTimeStamp << setprecision(7) 
             << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
