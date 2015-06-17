@@ -101,7 +101,8 @@ void LocalMapping::Run()
         }
 
         ResetIfRequested();
-        r.sleep();
+        // Note, not sure why it should sleep here
+        //r.sleep();
     }
 }
 
