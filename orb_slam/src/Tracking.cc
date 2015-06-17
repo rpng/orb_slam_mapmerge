@@ -398,7 +398,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     mpMap->AddKeyFrame(pKFini);
     mpMap->AddKeyFrame(pKFcur);
 
-    // Create MapPoints and asscoiate to keyframes
+    // Create MapPoints and associate to keyframes
     for(size_t i=0; i<mvIniMatches.size();i++)
     {
         if(mvIniMatches[i]<0)
@@ -510,7 +510,7 @@ bool Tracking::TrackPreviousFrame()
     mLastFrame.mTcw.copyTo(mCurrentFrame.mTcw);
     mCurrentFrame.mvpMapPoints=vpMapPointMatches;
 
-    // If enough correspondeces, optimize pose and project points from previous frame to search more correspondences
+    // If enough correspondences, optimize pose and project points from previous frame to search more correspondences
     if(nmatches>=10)
     {
         // Optimize pose with correspondences
@@ -589,7 +589,7 @@ bool Tracking::TrackWithMotionModel()
 
 bool Tracking::TrackLocalMap()
 {
-    // Tracking from previous frame or relocalisation was succesfull and we have an estimation
+    // Tracking from previous frame or relocalisation was successful and we have an estimation
     // of the camera pose and some map points tracked in the frame.
     // Update Local Map and Track
 
@@ -610,7 +610,7 @@ bool Tracking::TrackLocalMap()
                 mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
         }
 
-    // Decide if the tracking was succesful
+    // Decide if the tracking was successful
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;

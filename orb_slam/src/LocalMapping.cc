@@ -246,7 +246,7 @@ void LocalMapping::CreateNewMapPoints()
         // Compute Fundamental Matrix
         cv::Mat F12 = ComputeF12(mpCurrentKeyFrame,pKF2);
 
-        // Search matches that fulfil epipolar constraint
+        // Search matches that fulfill epipolar constraint
         vector<cv::KeyPoint> vMatchedKeysUn1;
         vector<cv::KeyPoint> vMatchedKeysUn2;
         vector<pair<size_t,size_t> > vMatchedIndices;
@@ -352,7 +352,7 @@ void LocalMapping::CreateNewMapPoints()
             if(ratioDist*ratioFactor<ratioOctave || ratioDist>ratioOctave*ratioFactor)
                 continue;
 
-            // Triangulation is succesfull
+            // Triangulation is successful
             MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap);
 
             pMP->AddObservation(pKF2,idx2);
