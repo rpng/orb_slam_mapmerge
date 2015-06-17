@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     cv::FileStorage fsSettings(strSettingsFile.c_str(), cv::FileStorage::READ);
     if(!fsSettings.isOpened())
     {
-        ROS_ERROR("Wrong path to settings. Path must be absolut or relative to ORB_SLAM package directory.");
+        ROS_ERROR("Wrong path to settings. Path must be absolute or relative to ORB_SLAM package directory.");
         ros::shutdown();
         return 1;
     }
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     cv::FileStorage fsVoc(strVocFile.c_str(), cv::FileStorage::READ);
     if(!fsVoc.isOpened())
     {
-        cerr << endl << "Wrong path to vocabulary. Path must be absolut or relative to ORB_SLAM package directory." << endl;
+        cerr << endl << "Wrong path to vocabulary. Path must be absolute or relative to ORB_SLAM package directory." << endl;
         ros::shutdown();
         return 1;
     }
