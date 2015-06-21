@@ -76,7 +76,7 @@ void LoopClosing::Run()
         }
 
         ResetIfRequested();
-        // Note, not sure why this should sleep here
+        // This sleep allows for the Local Mapping thread to gather more keyframes
         r.sleep();
     }
 }
@@ -277,7 +277,7 @@ bool LoopClosing::ComputeSim3()
     bool bMatch = false;
 
     // Perform alternatively RANSAC iterations for each candidate
-    // until one is succesful or all fail
+    // until one is successful or all fail
     while(nCandidates>0 && !bMatch)
     {
         for(int i=0; i<nInitialCandidates; i++)
@@ -295,7 +295,7 @@ bool LoopClosing::ComputeSim3()
             Sim3Solver* pSolver = vpSim3Solvers[i];
             cv::Mat Scm  = pSolver->iterate(5,bNoMore,vbInliers,nInliers);
 
-            // If Ransac reachs max. iterations discard keyframe
+            // If Ransac reaches max. iterations discard keyframe
             if(bNoMore)
             {
                 vbDiscarded[i]=true;
@@ -321,7 +321,7 @@ bool LoopClosing::ComputeSim3()
                 g2o::Sim3 gScm(Converter::toMatrix3d(R),Converter::toVector3d(t),s);
                 const int nInliers = Optimizer::OptimizeSim3(mpCurrentKF, pKF, vpMapPointMatches, gScm, 10);
 
-                // If optimization is succesful stop ransacs and continue
+                // If optimization is successful stop ransacs and continue
                 if(nInliers>=20)
                 {
                     bMatch = true;
@@ -411,7 +411,7 @@ void LoopClosing::CorrectLoop()
     // Ensure current keyframe is updated
     mpCurrentKF->UpdateConnections();
 
-    // Retrive keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
+    // Retrieve keyframes connected to the current keyframe and compute corrected Sim3 pose by propagation
     mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
     mvpCurrentConnectedKFs.push_back(mpCurrentKF);
 
@@ -444,7 +444,7 @@ void LoopClosing::CorrectLoop()
         NonCorrectedSim3[pKFi]=g2oSiw;
     }
 
-    // Correct all MapPoints obsrved by current keyframe and neighbors, so that they align with the other side of the loop
+    // Correct all MapPoints observed by current keyframe and neighbors, so that they align with the other side of the loop
     for(KeyFrameAndPose::iterator mit=CorrectedSim3.begin(), mend=CorrectedSim3.end(); mit!=mend; mit++)
     {
         KeyFrame* pKFi = mit->first;

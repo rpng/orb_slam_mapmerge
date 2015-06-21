@@ -177,7 +177,7 @@ bool Frame::isInFrustum(MapPoint *pMP, float viewingCosLimit)
     if(viewCos<viewingCosLimit)
         return false;
 
-    // Predict scale level acording to the distance
+    // Predict scale level according to the distance
     float ratio = dist/minDistance;
 
     vector<float>::iterator it = lower_bound(mvScaleFactors.begin(), mvScaleFactors.end(), ratio);
@@ -301,7 +301,7 @@ void Frame::UndistortKeyPoints()
         mat.at<float>(i,1)=mvKeys[i].pt.y;
     }
 
-    // Undistort points
+    // Undistorted points
     mat=mat.reshape(2);
     cv::undistortPoints(mat,mat,mK,mDistCoef,cv::Mat(),mK);
     mat=mat.reshape(1);
@@ -327,7 +327,7 @@ void Frame::ComputeImageBounds()
         mat.at<float>(2,0)=0.0; mat.at<float>(2,1)=im.rows;
         mat.at<float>(3,0)=im.cols; mat.at<float>(3,1)=im.rows;
 
-        // Undistort corners
+        // Undistorted corners
         mat=mat.reshape(2);
         cv::undistortPoints(mat,mat,mK,mDistCoef,cv::Mat(),mK);
         mat=mat.reshape(1);

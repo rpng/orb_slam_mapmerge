@@ -60,7 +60,7 @@ cv::Mat FramePublisher::DrawFrame()
 {
     cv::Mat im;
     vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
-    vector<int> vMatches; // Initialization: correspondeces with reference keypoints
+    vector<int> vMatches; // Initialization: correspondences with reference keypoints
     vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
     vector<MapPoint*> vMatchedMapPoints; // Tracked MapPoints in current frame
     int state; // Tracking state
@@ -125,7 +125,7 @@ cv::Mat FramePublisher::DrawFrame()
                 pt2.y=vCurrentKeys[i].pt.y+r;
                 if(!mvbOutliers[i])
                 {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                    //cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
                     cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }

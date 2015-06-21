@@ -101,8 +101,8 @@ void LocalMapping::Run()
         }
 
         ResetIfRequested();
-        // Note, not sure why it should sleep here
-        //r.sleep();
+        // This sleep allows the Loop closing thread to try to close loops
+        r.sleep();
     }
 }
 
