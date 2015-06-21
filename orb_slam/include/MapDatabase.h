@@ -1,9 +1,6 @@
 /**
 * This file is part of ORB-SLAM.
 *
-* Copyright (C) 2014 Raúl Mur-Artal <raulmur at unizar dot es> (University of Zaragoza)
-* For more information see <http://webdiis.unizar.es/~raulmur/orbslam/>
-*
 * ORB-SLAM is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
@@ -18,59 +15,63 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KEYFRAMEDATABASE_H
-#define KEYFRAMEDATABASE_H
+#ifndef MAPDATABASE_H
+#define MAPDATABASE_H
 
 #include <vector>
 #include <list>
 #include <set>
 
+#include "MapPoint.h"
+#include "Map.h"
 #include "KeyFrame.h"
 #include "Frame.h"
-#include "ORBVocabulary.h"
-
-#include "ros/ros.h"
 
 #include <boost/thread.hpp>
-
 
 namespace ORB_SLAM
 {
 
+class MapPoint;
+class Map;
 class KeyFrame;
 class Frame;
 
-
-class KeyFrameDatabase
+class MapDatabase
 {
 public:
 
-  KeyFrameDatabase(const ORBVocabulary &voc);
+  // Constructor
+  MapDatabase();
 
-  void add(KeyFrame* pKF);
+  // Adds a new map to the database
+  void addMap(Map* map);
 
-  void erase(KeyFrame* pKF);
+  // Removes a map from the database
+  void eraseMap(Map* map);
 
-  void clear();
+  // Gets the current map that we are tracking
+  Map* getLatestMap();
 
-  // Loop Detection
-  std::vector<KeyFrame*> DetectLoopCandidates(KeyFrame* pKF, float minScore);
+  // Map Connection Detection
+  // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);
 
-  // Relocalisation
-  std::vector<KeyFrame*> DetectRelocalisationCandidates(Frame* F);
+  // Map Relocalisation Detection
+  // std::vector<Map*> DetectRelocalisationCandidates(Frame* F);
 
 protected:
 
-  // Associated vocabulary
-  const ORBVocabulary* mpVoc;
+  // Current map
+  Map* currentMap;
 
-  // Inverted file
-  std::vector<list<KeyFrame*> > mvInvertedFile;
+  // List of all maps we have
+  std::vector<Map*> maps;
 
   // Mutex
-  boost::mutex mMutex;
+  boost::mutex mapMutex;
+
 };
 
 } //namespace ORB_SLAM
 
-#endif
+#endif // MAPDATABASE_H

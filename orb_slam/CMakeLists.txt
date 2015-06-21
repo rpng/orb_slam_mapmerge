@@ -58,6 +58,8 @@ add_executable(${PROJECT_NAME}
   src/MapPoint.cc
   src/KeyFrame.cc
   src/Map.cc
+  src/MapClosing.cc
+  src/MapDatabase.cc
   src/MapPublisher.cc
   src/Optimizer.cc
   src/PnPsolver.cc
