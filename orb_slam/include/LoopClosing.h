@@ -23,6 +23,7 @@
 
 #include "KeyFrame.h"
 #include "LocalMapping.h"
+#include "MapDatabase.h"
 #include "Map.h"
 #include "ORBVocabulary.h"
 #include "Tracking.h"
@@ -50,7 +51,7 @@ public:
 
 public:
 
-    LoopClosing(Map* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc);
+    LoopClosing(MapDatabase* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc);
 
     void SetTracker(Tracking* pTracker);
 
@@ -78,7 +79,7 @@ protected:
     bool mbResetRequested;
     boost::mutex mMutexReset;
 
-    Map* mpMap;
+    MapDatabase* mpMap;
     Tracking* mpTracker;
 
     KeyFrameDatabase* mpKeyFrameDB;

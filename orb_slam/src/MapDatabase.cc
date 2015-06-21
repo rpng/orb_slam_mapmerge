@@ -26,9 +26,6 @@ MapDatabase::MapDatabase() {
   // Init varibles
   currentMap = NULL;
   maps = std::vector<Map*>();
-  // Add inital map to db
-  // Remove this later when everything is implemented through DB
-  this->addMap(new Map);  
 }
 
 void MapDatabase::addMap(Map* map) {

@@ -106,11 +106,11 @@ int main(int argc, char **argv)
     Tracker.SetKeyFrameDatabase(&Database);
 
     //Initialize the Local Mapping Thread and launch
-    ORB_SLAM::LocalMapping LocalMapper(WorldDB.getLatestMap());
+    ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
 
     //Initialize the Loop Closing Thread and launch
-    ORB_SLAM::LoopClosing LoopCloser(WorldDB.getLatestMap(), &Database, &Vocabulary);
+    ORB_SLAM::LoopClosing LoopCloser(&WorldDB, &Database, &Vocabulary);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
 
     //Set pointers between threads

@@ -35,7 +35,7 @@
 namespace ORB_SLAM
 {
 
-LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc):
+LoopClosing::LoopClosing(MapDatabase *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc):
     mbResetRequested(false), mpMap(pMap), mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mLastLoopKFid(0)
 {
     mnCovisibilityConsistencyTh = 3;
@@ -60,18 +60,22 @@ void LoopClosing::Run()
 
     while(ros::ok())
     {
-        // Check if there are keyframes in the queue
-        if(CheckNewKeyFrames())
+        // Check that we have a map initialized
+        if(mpMap->getLatestMap() != NULL)
         {
-            // Detect loop candidates and check covisibility consistency
-            if(DetectLoop())
+            // Check if there are keyframes in the queue
+            if(CheckNewKeyFrames())
             {
-               // Compute similarity transformation [sR|t]
-               if(ComputeSim3())
-               {
-                   // Perform loop fusion and pose graph optimization
-                   CorrectLoop();
-               }
+                // Detect loop candidates and check covisibility consistency
+                if(DetectLoop())
+                {
+                   // Compute similarity transformation [sR|t]
+                   if(ComputeSim3())
+                   {
+                       // Perform loop fusion and pose graph optimization
+                       CorrectLoop();
+                   }
+                }
             }
         }
 
@@ -539,7 +543,7 @@ void LoopClosing::CorrectLoop()
 
     mpTracker->ForceRelocalisation();
 
-    Optimizer::OptimizeEssentialGraph(mpMap, mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
+    Optimizer::OptimizeEssentialGraph(mpMap->getLatestMap(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
 
     //Add edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
@@ -550,7 +554,7 @@ void LoopClosing::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
 
-    mpMap->SetFlagAfterBA();
+    mpMap->getLatestMap()->SetFlagAfterBA();
 
     mLastLoopKFid = mpCurrentKF->mnId;
 }

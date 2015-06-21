@@ -124,7 +124,7 @@ void MapPublisher::Refresh()
        PublishCurrentCamera(Tcw);
        ResetCamFlag();
     }
-    if(mpMap->getLatestMap()->isMapUpdated())
+    if(mpMap->getLatestMap() != NULL && mpMap->getLatestMap()->isMapUpdated())
     {
         vector<KeyFrame*> vKeyFrames = mpMap->getLatestMap()->GetAllKeyFrames();
         vector<MapPoint*> vMapPoints = mpMap->getLatestMap()->GetAllMapPoints();

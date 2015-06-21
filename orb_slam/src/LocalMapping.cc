@@ -28,7 +28,7 @@
 namespace ORB_SLAM
 {
 
-LocalMapping::LocalMapping(Map *pMap):
+LocalMapping::LocalMapping(MapDatabase *pMap):
     mbResetRequested(false), mpMap(pMap),  mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbAcceptKeyFrames(true)
 {
 }
@@ -49,42 +49,46 @@ void LocalMapping::Run()
     ros::Rate r(500);
     while(ros::ok())
     {
-        // Check if there are keyframes in the queue
-        if(CheckNewKeyFrames())
-        {            
-            // Tracking will see that Local Mapping is busy
-            SetAcceptKeyFrames(false);
+        // Check that we have a map initialized
+        if(mpMap->getLatestMap() != NULL)
+        {
+            // Check if there are keyframes in the queue
+            if(CheckNewKeyFrames())
+            {            
+                // Tracking will see that Local Mapping is busy
+                SetAcceptKeyFrames(false);
 
-            // BoW conversion and insertion in Map
-            ProcessNewKeyFrame();
+                // BoW conversion and insertion in Map
+                ProcessNewKeyFrame();
 
-            // Check recent MapPoints
-            MapPointCulling();
+                // Check recent MapPoints
+                MapPointCulling();
 
-            // Triangulate new MapPoints
-            CreateNewMapPoints();
+                // Triangulate new MapPoints
+                CreateNewMapPoints();
 
-            // Find more matches in neighbor keyframes and fuse point duplications
-            SearchInNeighbors();
+                // Find more matches in neighbor keyframes and fuse point duplications
+                SearchInNeighbors();
 
-            mbAbortBA = false;
+                mbAbortBA = false;
 
-            if(!CheckNewKeyFrames() && !stopRequested())
-            {
-                // Local BA
-                Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA);
+                if(!CheckNewKeyFrames() && !stopRequested())
+                {
+                    // Local BA
+                    Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA);
 
-                // Check redundant local Keyframes
-                KeyFrameCulling();
+                    // Check redundant local Keyframes
+                    KeyFrameCulling();
 
-                mpMap->SetFlagAfterBA();
+                    mpMap->getLatestMap()->SetFlagAfterBA();
 
-                // Tracking will see Local Mapping idle
-                if(!CheckNewKeyFrames())
-                    SetAcceptKeyFrames(true);
+                    // Tracking will see Local Mapping idle
+                    if(!CheckNewKeyFrames())
+                        SetAcceptKeyFrames(true);
+                }
+
+                mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
             }
-
-            mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
         }
 
         // Safe area to stop
@@ -170,7 +174,7 @@ void LocalMapping::ProcessNewKeyFrame()
     mpCurrentKeyFrame->UpdateConnections();
 
     // Insert Keyframe in Map
-    mpMap->AddKeyFrame(mpCurrentKeyFrame);
+    mpMap->getLatestMap()->AddKeyFrame(mpCurrentKeyFrame);
 }
 
 void LocalMapping::MapPointCulling()
@@ -353,7 +357,7 @@ void LocalMapping::CreateNewMapPoints()
                 continue;
 
             // Triangulation is successful
-            MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap);
+            MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap->getLatestMap());
 
             pMP->AddObservation(pKF2,idx2);
             pMP->AddObservation(mpCurrentKeyFrame,idx1);
@@ -365,7 +369,7 @@ void LocalMapping::CreateNewMapPoints()
 
             pMP->UpdateNormalAndDepth();
 
-            mpMap->AddMapPoint(pMP);
+            mpMap->getLatestMap()->AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
         }
     }
