@@ -27,6 +27,7 @@
 #include <sensor_msgs/image_encodings.h>
 
 #include "FramePublisher.h"
+#include "MapDatabase.h"
 #include "Map.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
@@ -44,6 +45,7 @@ namespace ORB_SLAM
 {
 
 class FramePublisher;
+class MapDatabase;
 class Map;
 class LocalMapping;
 class LoopClosing;
@@ -52,7 +54,7 @@ class Tracking
 {  
 
 public:
-    Tracking(ORBVocabulary* pVoc, FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, Map* pMap, string strSettingPath);
+    Tracking(ORBVocabulary* pVoc, FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, string strSettingPath);
 
     enum eTrackingState{
         SYSTEM_NOT_READY=-1,
@@ -140,7 +142,7 @@ protected:
     MapPublisher* mpMapPublisher;
 
     //Map
-    Map* mpMap;
+    MapDatabase* mpMap;
 
     //Calibration matrix
     cv::Mat mK;

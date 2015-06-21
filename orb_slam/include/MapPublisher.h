@@ -24,6 +24,7 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
+#include "MapDatabase.h"
 #include "Map.h"
 #include "MapPoint.h"
 #include "KeyFrame.h"
@@ -34,9 +35,9 @@ namespace ORB_SLAM
 class MapPublisher
 {
 public:
-    MapPublisher(Map* pMap);
+    MapPublisher(MapDatabase* pMap);
 
-    Map* mpMap;
+    MapDatabase* mpMap;
 
     void Refresh();
     void PublishMapPoints(const std::vector<MapPoint*> &vpMPs, const std::vector<MapPoint*> &vpRefMPs);

@@ -43,7 +43,7 @@ namespace ORB_SLAM
 {
 
 
-Tracking::Tracking(ORBVocabulary* pVoc, FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, Map *pMap, string strSettingPath):
+Tracking::Tracking(ORBVocabulary* pVoc, FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
     mState(NO_IMAGES_YET), mpORBVocabulary(pVoc), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap),
     mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
 {
@@ -226,7 +226,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse) or Relocalisation
         if(mState==WORKING && !RelocalisationRequested())
         {
-            if(!mbMotionModel || mpMap->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+            if(!mbMotionModel || mpMap->getLatestMap()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 bOK = TrackPreviousFrame();
             else
             {
@@ -271,10 +271,12 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // Reset if the camera get lost soon after initialization
         if(mState==LOST)
         {
-            if(mpMap->KeyFramesInMap()<=5)
+            if(mpMap->getLatestMap()->KeyFramesInMap()<=5)
             {
                 Reset();
                 return;
+            }  else {
+              mState = NOT_INITIALIZED;
             }
         }
 
@@ -381,6 +383,9 @@ void Tracking::Initialize()
 
 void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
 {
+    // Create new map in database
+    mpMap->addMap(new Map); 
+    
     // Set Frame Poses
     mInitialFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
     mCurrentFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
@@ -388,15 +393,15 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     tcw.copyTo(mCurrentFrame.mTcw.rowRange(0,3).col(3));
 
     // Create KeyFrames
-    KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap,mpKeyFrameDB);
-    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+    KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap->getLatestMap(),mpKeyFrameDB);
+    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap->getLatestMap(),mpKeyFrameDB);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
 
     // Insert KFs in the map
-    mpMap->AddKeyFrame(pKFini);
-    mpMap->AddKeyFrame(pKFcur);
+    mpMap->getLatestMap()->AddKeyFrame(pKFini);
+    mpMap->getLatestMap()->AddKeyFrame(pKFcur);
 
     // Create MapPoints and associate to keyframes
     for(size_t i=0; i<mvIniMatches.size();i++)
@@ -407,7 +412,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
         //Create MapPoint.
         cv::Mat worldPos(mvIniP3D[i]);
 
-        MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap);
+        MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap->getLatestMap());
 
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);
@@ -422,7 +427,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
 
         //Add to Map
-        mpMap->AddMapPoint(pMP);
+        mpMap->getLatestMap()->AddMapPoint(pMP);
 
     }
 
@@ -431,9 +436,9 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    ROS_INFO("New Map created with %d points",mpMap->MapPointsInMap());
+    ROS_INFO("New Map created with %d points",mpMap->getLatestMap()->MapPointsInMap());
 
-    Optimizer::GlobalBundleAdjustemnt(mpMap,20);
+    Optimizer::GlobalBundleAdjustemnt(mpMap->getLatestMap(),20);
 
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -472,10 +477,10 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
 
     mvpLocalKeyFrames.push_back(pKFcur);
     mvpLocalKeyFrames.push_back(pKFini);
-    mvpLocalMapPoints=mpMap->GetAllMapPoints();
+    mvpLocalMapPoints=mpMap->getLatestMap()->GetAllMapPoints();
     mpReferenceKF = pKFcur;
 
-    mpMap->SetReferenceMapPoints(mvpLocalMapPoints);
+    mpMap->getLatestMap()->SetReferenceMapPoints(mvpLocalMapPoints);
 
     mpMapPublisher->SetCurrentCameraPose(pKFcur->GetPose());
 
@@ -491,7 +496,7 @@ bool Tracking::TrackPreviousFrame()
     // Search first points at coarse scale levels to get a rough initial estimate
     int minOctave = 0;
     int maxOctave = mCurrentFrame.mvScaleFactors.size()-1;
-    if(mpMap->KeyFramesInMap()>5)
+    if(mpMap->getLatestMap()->KeyFramesInMap()>5)
         minOctave = maxOctave/2+1;
 
     int nmatches = matcher.WindowSearch(mLastFrame,mCurrentFrame,200,vpMapPointMatches,minOctave);
@@ -629,7 +634,7 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 
     // Not insert keyframes if not enough frames from last relocalisation have passed
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mpMap->KeyFramesInMap()>mMaxFrames)
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mpMap->getLatestMap()->KeyFramesInMap()>mMaxFrames)
         return false;
 
     // Reference KeyFrame MapPoints
@@ -664,7 +669,7 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
-    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap,mpKeyFrameDB);
+    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap->getLatestMap(),mpKeyFrameDB);
 
     mpLocalMapper->InsertKeyFrame(pKF);
 
@@ -728,7 +733,7 @@ void Tracking::SearchReferencePointsInFrustum()
 void Tracking::UpdateReference()
 {    
     // This is for visualization
-    mpMap->SetReferenceMapPoints(mvpLocalMapPoints);
+    mpMap->getLatestMap()->SetReferenceMapPoints(mvpLocalMapPoints);
 
     // Update
     UpdateReferenceKeyFrames();
@@ -1050,7 +1055,7 @@ void Tracking::Reset()
     // Clear BoW Database
     mpKeyFrameDB->clear();
     // Clear Map (this erase MapPoints and KeyFrames)
-    mpMap->clear();
+    mpMap->getLatestMap()->clear();
 
     KeyFrame::nNextId = 0;
     Frame::nNextId = 0;

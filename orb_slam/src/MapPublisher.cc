@@ -26,7 +26,7 @@ namespace ORB_SLAM
 {
 
 
-MapPublisher::MapPublisher(Map* pMap):mpMap(pMap), mbCameraUpdated(false)
+MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false)
 {
     const char* MAP_FRAME_ID = "/ORB_SLAM/World";
     const char* POINTS_NAMESPACE = "MapPoints";
@@ -124,16 +124,16 @@ void MapPublisher::Refresh()
        PublishCurrentCamera(Tcw);
        ResetCamFlag();
     }
-    if(mpMap->isMapUpdated())
+    if(mpMap->getLatestMap()->isMapUpdated())
     {
-        vector<KeyFrame*> vKeyFrames = mpMap->GetAllKeyFrames();
-        vector<MapPoint*> vMapPoints = mpMap->GetAllMapPoints();
-        vector<MapPoint*> vRefMapPoints = mpMap->GetReferenceMapPoints();
+        vector<KeyFrame*> vKeyFrames = mpMap->getLatestMap()->GetAllKeyFrames();
+        vector<MapPoint*> vMapPoints = mpMap->getLatestMap()->GetAllMapPoints();
+        vector<MapPoint*> vRefMapPoints = mpMap->getLatestMap()->GetReferenceMapPoints();
 
         PublishMapPoints(vMapPoints, vRefMapPoints);   
         PublishKeyFrames(vKeyFrames);
 
-        mpMap->ResetUpdated();
+        mpMap->getLatestMap()->ResetUpdated();
     }    
 }
 

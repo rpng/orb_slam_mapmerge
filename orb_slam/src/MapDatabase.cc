@@ -23,8 +23,12 @@ namespace ORB_SLAM
 {
 
 MapDatabase::MapDatabase() {
+  // Init varibles
   currentMap = NULL;
   maps = std::vector<Map*>();
+  // Add inital map to db
+  // Remove this later when everything is implemented through DB
+  this->addMap(new Map);  
 }
 
 void MapDatabase::addMap(Map* map) {
@@ -38,6 +42,10 @@ void MapDatabase::eraseMap(Map* map){
 
 Map* MapDatabase::getLatestMap() {
     return currentMap;
+}
+
+std::vector<Map*> MapDatabase::getAllMaps() {
+  return maps;
 }
 
 

@@ -91,26 +91,26 @@ int main(int argc, char **argv)
     //Create KeyFrame Database
     ORB_SLAM::KeyFrameDatabase Database(Vocabulary);
 
-    //Create the map
-    ORB_SLAM::Map World;
+    //Create the map database
+    ORB_SLAM::MapDatabase WorldDB;
 
-    FramePub.SetMap(&World);
+    FramePub.SetMapDB(&WorldDB);
 
     //Create Map Publisher for Rviz
-    ORB_SLAM::MapPublisher MapPub(&World);
+    ORB_SLAM::MapPublisher MapPub(&WorldDB);
 
     //Initialize the Tracking Thread and launch
-    ORB_SLAM::Tracking Tracker(&Vocabulary, &FramePub, &MapPub, &World, strSettingsFile);
+    ORB_SLAM::Tracking Tracker(&Vocabulary, &FramePub, &MapPub, &WorldDB, strSettingsFile);
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
 
     Tracker.SetKeyFrameDatabase(&Database);
 
     //Initialize the Local Mapping Thread and launch
-    ORB_SLAM::LocalMapping LocalMapper(&World);
+    ORB_SLAM::LocalMapping LocalMapper(WorldDB.getLatestMap());
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
 
     //Initialize the Loop Closing Thread and launch
-    ORB_SLAM::LoopClosing LoopCloser(&World, &Database, &Vocabulary);
+    ORB_SLAM::LoopClosing LoopCloser(WorldDB.getLatestMap(), &Database, &Vocabulary);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
 
     //Set pointers between threads
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
     // Save keyframe poses at the end of the execution
     ofstream f;
 
-    vector<ORB_SLAM::KeyFrame*> vpKFs = World.GetAllKeyFrames();
+    vector<ORB_SLAM::KeyFrame*> vpKFs = WorldDB.getLatestMap()->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),ORB_SLAM::KeyFrame::lId);
 
     cout << endl << "Saving Keyframe Trajectory to KeyFrameTrajectory.txt" << endl;

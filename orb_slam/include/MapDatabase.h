@@ -52,6 +52,9 @@ public:
 
   // Gets the current map that we are tracking
   Map* getLatestMap();
+  
+    // Gets all maps
+  std::vector<Map*> getAllMaps();
 
   // Map Connection Detection
   // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);

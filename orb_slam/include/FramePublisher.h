@@ -24,6 +24,7 @@
 #include "Tracking.h"
 #include "MapPoint.h"
 #include "Map.h"
+#include "MapDatabase.h"
 
 #include "ros/ros.h"
 
@@ -47,7 +48,7 @@ public:
 
     void Refresh();
 
-    void SetMap(Map* pMap);
+    void SetMapDB(MapDatabase *pMap);
 
 protected:
 
@@ -74,7 +75,7 @@ protected:
 
     bool mbUpdated;
 
-    Map* mpMap;
+    MapDatabase* mpMap;
 
     boost::mutex mMutex;
 };

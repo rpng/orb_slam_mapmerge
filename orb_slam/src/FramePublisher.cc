@@ -42,7 +42,7 @@ FramePublisher::FramePublisher()
     PublishFrame();
 }
 
-void FramePublisher::SetMap(Map *pMap)
+void FramePublisher::SetMapDB(MapDatabase *pMap)
 {
     mpMap = pMap;
 }
@@ -164,9 +164,9 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
     else if(nState==Tracking::WORKING)
     {
         s << " TRACKING ";
-        int nKFs = mpMap->KeyFramesInMap();
-        int nMPs = mpMap->MapPointsInMap();
-        s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked;
+        int nKFs = mpMap->getLatestMap()->KeyFramesInMap();
+        int nMPs = mpMap->getLatestMap()->MapPointsInMap();
+        s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << mpMap->getAllMaps().size();
     }
     else if(nState==Tracking::LOST)
     {
