@@ -41,7 +41,7 @@ public:
     MapDatabase* mpMap;
 
     void Refresh();
-    void PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector<MapPoint*> &vpRefMPs, int size, int ct);
+    void PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector<MapPoint*> &vpRefMPs);
     void PublishKeyFrames(const std::vector<KeyFrame*> &vpKFs);
     void PublishCurrentCamera(const cv::Mat &Tcw);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
@@ -51,14 +51,12 @@ private:
     cv::Mat GetCurrentCameraPose();
     bool isCamUpdated();
     void ResetCamFlag();
-    double inttohash(unsigned int key);
 
     ros::NodeHandle nh;
-    ros::Publisher publisher_map;
-    ros::Publisher publisher_arr;
+    ros::Publisher publisher;
 
-    visualization_msgs::MarkerArray mPoints;
-    visualization_msgs::MarkerArray mReferencePoints;
+    visualization_msgs::Marker mPoints;
+    visualization_msgs::Marker mReferencePoints;
     visualization_msgs::Marker mKeyFrames;
     visualization_msgs::Marker mReferenceKeyFrames;
     visualization_msgs::Marker mCovisibilityGraph;
@@ -72,12 +70,6 @@ private:
     bool mbCameraUpdated;
 
     boost::mutex mMutexCamera;
-    
-    std::string* MAP_FRAME_ID;
-    std::string* POINTS_NAMESPACE;
-    std::string* KEYFRAMES_NAMESPACE;
-    std::string* GRAPH_NAMESPACE;
-    std::string* CAMERA_NAMESPACE;
 };
 
 } //namespace ORB_SLAM
