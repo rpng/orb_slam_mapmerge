@@ -25,6 +25,7 @@ namespace ORB_SLAM
 MapDatabase::MapDatabase() {
   // Init varibles
   currentMap = NULL;
+  reset = false;
   maps = std::vector<Map*>();
 }
 
@@ -39,6 +40,14 @@ void MapDatabase::eraseMap(Map* map){
 
 Map* MapDatabase::getLatestMap() {
     return currentMap;
+}
+
+void MapDatabase::setReset(bool res) {
+    reset = res;
+}
+
+bool MapDatabase::isReset() {
+    return reset;
 }
 
 std::vector<Map*> MapDatabase::getAllMaps() {

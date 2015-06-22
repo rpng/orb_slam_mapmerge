@@ -55,6 +55,12 @@ public:
   
     // Gets all maps
   std::vector<Map*> getAllMaps();
+  
+  // Sets the reset state
+  void setReset(bool res);
+
+  // Returns if in a reset state or not
+  bool isReset();
 
   // Map Connection Detection
   // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);
@@ -66,6 +72,9 @@ protected:
 
   // Current map
   Map* currentMap;
+  
+  // If we are in a reset state or not
+  bool reset;
 
   // List of all maps we have
   std::vector<Map*> maps;

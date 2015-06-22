@@ -37,7 +37,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     CAMERA_NAMESPACE = new std::string("Camera");
 
     //Configure MapPoints
-    fPointSize=0.005;
+    fPointSize=0.01;
 
     //Configure KeyFrames
     fCameraSize=0.02;
@@ -147,8 +147,10 @@ void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector
 { 
     // Create namespace
     std::ostringstream oss;
-    oss << *POINTS_NAMESPACE << "_" << ct;
+    oss << ct << "_" << *POINTS_NAMESPACE;
     std::string ns = oss.str();
+    // Map point life time
+    ros::Duration lifetime = ros::Duration(0,20);
     
     // Configure map points
     mPoints.markers[ct].header.frame_id = MAP_FRAME_ID->c_str();
@@ -156,7 +158,8 @@ void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector
     mPoints.markers[ct].id=ct;
     mPoints.markers[ct].type = visualization_msgs::Marker::POINTS;
     mPoints.markers[ct].scale.x=fPointSize;
-    mPoints.markers[ct].scale.y=fPointSize;
+    mPoints.markers[ct].scale.y=fPointSize; 
+    mPoints.markers[ct].lifetime= lifetime;
     mPoints.markers[ct].pose.orientation.w=1.0;
     mPoints.markers[ct].action=visualization_msgs::Marker::ADD;
     
@@ -167,6 +170,7 @@ void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector
     mReferencePoints.markers[ct].type = visualization_msgs::Marker::POINTS;
     mReferencePoints.markers[ct].scale.x=fPointSize;
     mReferencePoints.markers[ct].scale.y=fPointSize;
+    mPoints.markers[ct].lifetime= lifetime;
     mReferencePoints.markers[ct].pose.orientation.w=1.0;
     mReferencePoints.markers[ct].action=visualization_msgs::Marker::ADD;
     
@@ -202,14 +206,14 @@ void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector
     }
     
     // Set color
-    mPoints.markers[ct].color.a = (float)inttohash(ct+1);
-    mPoints.markers[ct].color.g =  (float)inttohash(ct+1);
-    mPoints.markers[ct].color.b =  (float)inttohash(ct+1);
+    mPoints.markers[ct].color.r = (float)inttohash(ct+1);
+    mPoints.markers[ct].color.g =  (float)inttohash(ct+2);
+    mPoints.markers[ct].color.b =  (float)inttohash(ct+3);
     mPoints.markers[ct].color.a =  1.0f;
     // Set color
-    mReferencePoints.markers[ct].color.a = (float)inttohash(ct+1);
-    mReferencePoints.markers[ct].color.g =  0.0f;
-    mReferencePoints.markers[ct].color.b =  (float)inttohash(ct+1);
+    mReferencePoints.markers[ct].color.r = (float)inttohash(ct+4);
+    mReferencePoints.markers[ct].color.g =  (float)inttohash(ct+5);
+    mReferencePoints.markers[ct].color.b =  (float)inttohash(ct+6);
     mReferencePoints.markers[ct].color.a =  1.0f;
     // Set time
     mPoints.markers[ct].header.stamp = ros::Time::now();

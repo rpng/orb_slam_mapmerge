@@ -383,8 +383,12 @@ void Tracking::Initialize()
 
 void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
 {
-    // Create new map in database
-    mpMap->addMap(new Map); 
+    // Create new map in database, if not in reset state
+    if(!mpMap->isReset()) {
+      mpMap->addMap(new Map); 
+    } else {
+      mpMap->setReset(false);
+    }
     
     // Set Frame Poses
     mInitialFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
@@ -1056,6 +1060,7 @@ void Tracking::Reset()
     mpKeyFrameDB->clear();
     // Clear Map (this erase MapPoints and KeyFrames)
     mpMap->getLatestMap()->clear();
+    mpMap->setReset(true);
 
     KeyFrame::nNextId = 0;
     Frame::nNextId = 0;
