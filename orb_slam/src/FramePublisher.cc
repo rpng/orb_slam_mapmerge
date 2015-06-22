@@ -78,7 +78,7 @@ cv::Mat FramePublisher::DrawFrame()
         {            
             vIniKeys = mvIniKeys;
         }
-        else if(mState==Tracking::INITIALIZING)
+        else if(mState==Tracking::INITIALIZING  || mState==Tracking::LOST_INITIALIZING)
         {
             vCurrentKeys = mvCurrentKeys;
             vIniKeys = mvIniKeys;
@@ -89,17 +89,13 @@ cv::Mat FramePublisher::DrawFrame()
             vCurrentKeys = mvCurrentKeys;
             vMatchedMapPoints = mvpMatchedMapPoints;
         }
-        else if(mState==Tracking::LOST)
-        {
-            vCurrentKeys = mvCurrentKeys;
-        }
     } // destroy scoped mutex -> release
 
     if(im.channels()<3)
         cvtColor(im,im,CV_GRAY2BGR);
 
     //Draw
-    if(state==Tracking::INITIALIZING) //INITIALIZING
+    if(state==Tracking::INITIALIZING || state==Tracking::LOST_INITIALIZING) //INITIALIZING
     {
         for(unsigned int i=0; i<vMatches.size(); i++)
         {
@@ -168,7 +164,7 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
         int nMPs = mpMap->getLatestMap()->MapPointsInMap();
         s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << mpMap->getAllMaps().size();
     }
-    else if(nState==Tracking::LOST)
+    else if(nState==Tracking::LOST_NOT_INITIALIZED || nState==Tracking::LOST_INITIALIZING)
     {
         s << " TRACK LOST. TRYING TO RELOCALIZE ";
     }
@@ -195,7 +191,7 @@ void FramePublisher::Update(Tracking *pTracker)
     mvpMatchedMapPoints=pTracker->mCurrentFrame.mvpMapPoints;
     mvbOutliers = pTracker->mCurrentFrame.mvbOutlier;
 
-    if(pTracker->mLastProcessedState==Tracking::INITIALIZING)
+    if(pTracker->mLastProcessedState==Tracking::INITIALIZING  || pTracker->mLastProcessedState==Tracking::LOST_INITIALIZING)
     {
         mvIniKeys=pTracker->mInitialFrame.mvKeys;
         mvIniMatches=pTracker->mvIniMatches;

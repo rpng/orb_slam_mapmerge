@@ -196,35 +196,53 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         cv_ptr->image.copyTo(im);
     }
 
-    if(mState==WORKING || mState==LOST)
+    if(mState==WORKING || mState==LOST_NOT_INITIALIZED || mState==LOST_INITIALIZING )
         mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpORBextractor,mpORBVocabulary,mK,mDistCoef);
     else
         mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor,mpORBVocabulary,mK,mDistCoef);
 
     // Depending on the state of the Tracker we perform different tasks
-
+    // If no images, we are no initialized
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
     }
-
+    // Ensure correct state
     mLastProcessedState=mState;
-
+    // Create a new map if needed
     if(mState==NOT_INITIALIZED)
     {
-        FirstInitialization();
+        FirstInitialization(true);
     }
+    // Try to inialized the map
     else if(mState==INITIALIZING)
     {
-        Initialize();
+        Initialize(true);
     }
-    else
+    // Check if we are lost, try to do first init
+    else if(mState==LOST_NOT_INITIALIZED)
+    {
+        if(!Relocalisation())
+            FirstInitialization(false);
+        else
+            mState = WORKING;
+    } 
+    // If we have first init, try to create initial map
+    else if(mState==LOST_INITIALIZING)
+    {
+        if(!Relocalisation())
+            Initialize(false);
+        else
+            mState = WORKING;
+    }
+    // If we are working, track points
+    if(mState==WORKING)
     {
         // System is initialized. Track Frame.
         bool bOK;
 
         // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse) or Relocalisation
-        if(mState==WORKING && !RelocalisationRequested())
+        if(!RelocalisationRequested())
         {
             if(!mbMotionModel || mpMap->getLatestMap()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 bOK = TrackPreviousFrame();
@@ -266,17 +284,17 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         if(bOK)
             mState = WORKING;
         else
-            mState=LOST;
+            mState=LOST_NOT_INITIALIZED;
 
         // Reset if the camera get lost soon after initialization
-        if(mState==LOST)
+        if(mState==LOST_NOT_INITIALIZED)
         {
             if(mpMap->getLatestMap()->KeyFramesInMap()<=5)
             {
-                Reset();
+                Reset(false);
                 return;
             }  else {
-              mState = NOT_INITIALIZED;
+              mState = LOST_NOT_INITIALIZED;
             }
         }
 
@@ -319,7 +337,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 }
 
 
-void Tracking::FirstInitialization()
+void Tracking::FirstInitialization(bool first_time)
 {
     //We ensure a minimum ORB features to continue, otherwise discard frame
     if(mCurrentFrame.mvKeys.size()>100)
@@ -336,17 +354,17 @@ void Tracking::FirstInitialization()
         mpInitializer =  new Initializer(mCurrentFrame,1.0,200);
 
 
-        mState = INITIALIZING;
+        mState = first_time ? INITIALIZING : LOST_INITIALIZING;
     }
 }
 
-void Tracking::Initialize()
+void Tracking::Initialize(bool first_time)
 {
     // Check if current frame has enough keypoints, otherwise reset initialization process
     if(mCurrentFrame.mvKeys.size()<=100)
     {
         fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
-        mState = NOT_INITIALIZED;
+        mState = first_time ? NOT_INITIALIZED : LOST_NOT_INITIALIZED;
         return;
     }    
 
@@ -357,7 +375,7 @@ void Tracking::Initialize()
     // Check if there are enough correspondences
     if(nmatches<100)
     {
-        mState = NOT_INITIALIZED;
+        mState = first_time ? NOT_INITIALIZED : LOST_NOT_INITIALIZED;
         return;
     }  
 
@@ -376,12 +394,12 @@ void Tracking::Initialize()
             }           
         }
 
-        CreateInitialMap(Rcw,tcw);
+        CreateInitialMap(Rcw,tcw,first_time);
     }
 
 }
 
-void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
+void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
 {
     // Create new map in database, if not in reset state
     if(!mpMap->isReset()) {
@@ -451,7 +469,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     if(medianDepth<0 || pKFcur->TrackedMapPoints()<100)
     {
         ROS_INFO("Wrong initialization, reseting...");
-        Reset();
+        Reset(first_time);
         return;
     }
 
@@ -1032,7 +1050,7 @@ bool Tracking::RelocalisationRequested()
 }
 
 
-void Tracking::Reset()
+void Tracking::Reset(bool first_time)
 {
     {
         boost::mutex::scoped_lock lock(mMutexReset);
@@ -1064,7 +1082,7 @@ void Tracking::Reset()
 
     KeyFrame::nNextId = 0;
     Frame::nNextId = 0;
-    mState = NOT_INITIALIZED;
+    mState = first_time ? NOT_INITIALIZED : LOST_NOT_INITIALIZED;
 
     {
         boost::mutex::scoped_lock lock(mMutexReset);

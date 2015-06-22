@@ -62,7 +62,8 @@ public:
         NOT_INITIALIZED=1,
         INITIALIZING=2,
         WORKING=3,
-        LOST=4
+        LOST_NOT_INITIALIZED=4,
+        LOST_INITIALIZING=5
     };
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
@@ -94,11 +95,11 @@ public:
 protected:
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
 
-    void FirstInitialization();
-    void Initialize();
-    void CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw);
+    void FirstInitialization(bool first_time);
+    void Initialize(bool first_time);
+    void CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time);
 
-    void Reset();
+    void Reset(bool first_time);
 
     bool TrackPreviousFrame();
     bool TrackWithMotionModel();
