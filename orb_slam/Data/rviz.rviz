@@ -7,7 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Marker1
-        - /Marker1/Namespaces1
+        - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 514
   - Class: rviz/Selection
@@ -37,16 +37,22 @@ Visualization Manager:
       Marker Topic: /ORB_SLAM/Map
       Name: Marker
       Namespaces:
-        Camera: true
-        Graph: true
-        KeyFrames: true
-        MapPoints: true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /ORB_SLAM/Map_Array
+      Name: MarkerArray
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
-    Fixed Frame: /ORB_SLAM/Camera
+    Fixed Frame: ORB_SLAM/Camera
+    Frame Rate: 30
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -67,6 +73,11 @@ Visualization Manager:
     Current:
       Class: rviz/Orbit
       Distance: 3.996
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.06
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
       Focal Point:
         X: -0.111169
         Y: -0.187361
@@ -74,7 +85,7 @@ Visualization Manager:
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: -0.854796
-      Target Frame: /ORB_SLAM/Camera
+      Target Frame: ORB_SLAM/Camera
       Value: Orbit (rviz)
       Yaw: 4.6604
     Saved: ~
@@ -94,5 +105,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 929
-  X: 590
-  Y: 174
+  X: 631
+  Y: 32
