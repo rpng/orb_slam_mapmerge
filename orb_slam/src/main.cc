@@ -35,6 +35,7 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 
+#include <sstream>
 
 #include "Converter.h"
 
@@ -138,36 +139,40 @@ int main(int argc, char **argv)
     }
 
     // Save keyframe poses at the end of the execution
-    ofstream f;
+    for (std::size_t i = 0; i != WorldDB.getAll().size(); ++i) {
+        // Output stream
+        ofstream f;
+        // Get keyframes of current map
+        vector<ORB_SLAM::KeyFrame*> vpKFs = WorldDB.getAll().at(i)->GetAllKeyFrames();
+        sort(vpKFs.begin(),vpKFs.end(),ORB_SLAM::KeyFrame::lId);
+        // Export information, open file
+        cout << endl << "Saving Keyframe Trajectory to KeyFrameTrajectory.txt" << endl;
+        std::ostringstream oss;
+        oss << ros::package::getPath("orb_slam") << "/generated/KeyFrameTrajectory_" << i << ".txt";
+        f.open(oss.str().c_str());
+        f << fixed;
+        // Export frames
+        for(size_t i=0; i<vpKFs.size(); i++)
+        {
+            ORB_SLAM::KeyFrame* pKF = vpKFs[i];
 
-    vector<ORB_SLAM::KeyFrame*> vpKFs = WorldDB.getCurrent()->GetAllKeyFrames();
-    sort(vpKFs.begin(),vpKFs.end(),ORB_SLAM::KeyFrame::lId);
+            if(pKF->isBad())
+                continue;
 
-    cout << endl << "Saving Keyframe Trajectory to KeyFrameTrajectory.txt" << endl;
-    string strFile = ros::package::getPath("orb_slam")+"/"+"KeyFrameTrajectory.txt";
-    f.open(strFile.c_str());
-    f << fixed;
+            cv::Mat R = pKF->GetRotation().t();
+            vector<float> q = ORB_SLAM::Converter::toQuaternion(R);
+            cv::Mat t = pKF->GetCameraCenter();
+            // Timestamp: t
+            // Position: x, y, z
+            // Quaternions: q0, q1, q2, q3
+            f << setprecision(6) << pKF->mTimeStamp << setprecision(7) 
+                << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
+                << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
 
-    for(size_t i=0; i<vpKFs.size(); i++)
-    {
-        ORB_SLAM::KeyFrame* pKF = vpKFs[i];
-
-        if(pKF->isBad())
-            continue;
-
-        cv::Mat R = pKF->GetRotation().t();
-        vector<float> q = ORB_SLAM::Converter::toQuaternion(R);
-        cv::Mat t = pKF->GetCameraCenter();
-        // Timestamp: t
-        // Position: x, y, z
-        // Quaternions: q0, q1, q2, q3
-        f << setprecision(6) << pKF->mTimeStamp << setprecision(7) 
-            << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
-            << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
-
+        }
+        // Close file
+        f.close();
     }
-    f.close();
-
     ros::shutdown();
 
 	return 0;
