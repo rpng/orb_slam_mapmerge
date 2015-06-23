@@ -9,3 +9,5 @@
 
 # Exclude stat file
 /orb_slam/KeyFrameTrajectory.txt
+/orb_slam/generated/*
+!/orb_slam/generated/.gitkeep
