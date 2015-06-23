@@ -52,14 +52,6 @@ Map* MapDatabase::getCurrent() {
     return currentMap;
 }
 
-void MapDatabase::setReset(bool res) {
-    reset = res;
-}
-
-bool MapDatabase::isReset() {
-    return reset;
-}
-
 std::vector<Map*> MapDatabase::getAll() {
   return maps;
 }
