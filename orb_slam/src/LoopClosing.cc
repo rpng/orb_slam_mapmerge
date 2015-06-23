@@ -61,7 +61,7 @@ void LoopClosing::Run()
     while(ros::ok())
     {
         // Check that we have a map initialized
-        if(mpMap->getLatestMap() != NULL)
+        if(mpMap->getCurrent() != NULL)
         {
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -543,7 +543,7 @@ void LoopClosing::CorrectLoop()
 
     mpTracker->ForceRelocalisation();
 
-    Optimizer::OptimizeEssentialGraph(mpMap->getLatestMap(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
+    Optimizer::OptimizeEssentialGraph(mpMap->getCurrent(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
 
     //Add edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
@@ -554,7 +554,7 @@ void LoopClosing::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
 
-    mpMap->getLatestMap()->SetFlagAfterBA();
+    mpMap->getCurrent()->SetFlagAfterBA();
 
     mLastLoopKFid = mpCurrentKF->mnId;
 }

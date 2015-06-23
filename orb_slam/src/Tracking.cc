@@ -246,7 +246,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         if(!RelocalisationRequested())
         {
             // TODO: Add comments
-            if(!mbMotionModel || mpMap->getLatestMap()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2) {
+            if(!mbMotionModel || mpMap->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2) {
                 bOK = TrackPreviousFrame();
             }
             else
@@ -291,7 +291,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // Reset if the camera get lost soon after initialization
         if(mState==LOST_NOT_INITIALIZED)
         {
-            if(mpMap->getLatestMap()->KeyFramesInMap()<=5)
+            if(mpMap->getCurrent()->KeyFramesInMap()<=5)
             {
                 Reset(false);
                 return;
@@ -419,15 +419,15 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     tcw.copyTo(mCurrentFrame.mTcw.rowRange(0,3).col(3));
 
     // Create KeyFrames
-    KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap->getLatestMap(),mpKeyFrameDB);
-    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap->getLatestMap(),mpKeyFrameDB);
+    KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap->getCurrent(),mpKeyFrameDB);
+    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap->getCurrent(),mpKeyFrameDB);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
 
     // Insert KFs in the map
-    mpMap->getLatestMap()->AddKeyFrame(pKFini);
-    mpMap->getLatestMap()->AddKeyFrame(pKFcur);
+    mpMap->getCurrent()->AddKeyFrame(pKFini);
+    mpMap->getCurrent()->AddKeyFrame(pKFcur);
 
     // Create MapPoints and associate to keyframes
     for(size_t i=0; i<mvIniMatches.size();i++)
@@ -438,7 +438,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
         //Create MapPoint.
         cv::Mat worldPos(mvIniP3D[i]);
 
-        MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap->getLatestMap());
+        MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap->getCurrent());
 
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);
@@ -453,7 +453,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
 
         //Add to Map
-        mpMap->getLatestMap()->AddMapPoint(pMP);
+        mpMap->getCurrent()->AddMapPoint(pMP);
 
     }
 
@@ -462,9 +462,9 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    ROS_INFO("New Map created with %d points",mpMap->getLatestMap()->MapPointsInMap());
+    ROS_INFO("New Map created with %d points",mpMap->getCurrent()->MapPointsInMap());
 
-    Optimizer::GlobalBundleAdjustemnt(mpMap->getLatestMap(),20);
+    Optimizer::GlobalBundleAdjustemnt(mpMap->getCurrent(),20);
 
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -503,10 +503,10 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
 
     mvpLocalKeyFrames.push_back(pKFcur);
     mvpLocalKeyFrames.push_back(pKFini);
-    mvpLocalMapPoints=mpMap->getLatestMap()->GetAllMapPoints();
+    mvpLocalMapPoints=mpMap->getCurrent()->GetAllMapPoints();
     mpReferenceKF = pKFcur;
 
-    mpMap->getLatestMap()->SetReferenceMapPoints(mvpLocalMapPoints);
+    mpMap->getCurrent()->SetReferenceMapPoints(mvpLocalMapPoints);
 
     mpMapPublisher->SetCurrentCameraPose(pKFcur->GetPose());
 
@@ -521,7 +521,7 @@ bool Tracking::TrackPreviousFrame()
     // Search first points at coarse scale levels to get a rough initial estimate
     int minOctave = 0;
     int maxOctave = mCurrentFrame.mvScaleFactors.size()-1;
-    if(mpMap->getLatestMap()->KeyFramesInMap()>5)
+    if(mpMap->getCurrent()->KeyFramesInMap()>5)
         minOctave = maxOctave/2+1;
 
     int nmatches = matcher.WindowSearch(mLastFrame,mCurrentFrame,200,vpMapPointMatches,minOctave);
@@ -658,7 +658,7 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 
     // Not insert keyframes if not enough frames from last relocalisation have passed
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mpMap->getLatestMap()->KeyFramesInMap()>mMaxFrames)
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mpMap->getCurrent()->KeyFramesInMap()>mMaxFrames)
         return false;
 
     // Reference KeyFrame MapPoints
@@ -693,7 +693,7 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
-    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap->getLatestMap(),mpKeyFrameDB);
+    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap->getCurrent(),mpKeyFrameDB);
 
     mpLocalMapper->InsertKeyFrame(pKF);
 
@@ -757,7 +757,7 @@ void Tracking::SearchReferencePointsInFrustum()
 void Tracking::UpdateReference()
 {    
     // This is for visualization
-    mpMap->getLatestMap()->SetReferenceMapPoints(mvpLocalMapPoints);
+    mpMap->getCurrent()->SetReferenceMapPoints(mvpLocalMapPoints);
 
     // Update
     UpdateReferenceKeyFrames();
@@ -1087,7 +1087,7 @@ void Tracking::Reset(bool first_time)
     // Clear BoW Database
     mpKeyFrameDB->clear();
     // Clear Map (this erase MapPoints and KeyFrames)
-    mpMap->getLatestMap()->clear();
+    mpMap->getCurrent()->clear();
     mpMap->setReset(true);
 
     KeyFrame::nNextId = 0;

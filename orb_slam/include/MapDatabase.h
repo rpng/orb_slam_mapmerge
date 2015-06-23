@@ -54,10 +54,10 @@ public:
     bool setMap(Map* map);
 
     // Gets the current map that we are tracking
-    Map* getLatestMap();
+    Map* getCurrent();
 
     // Gets all maps
-    std::vector<Map*> getAllMaps();
+    std::vector<Map*> getAll();
 
     // Sets the reset state
     void setReset(bool res);

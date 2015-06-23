@@ -50,7 +50,7 @@ void LocalMapping::Run()
     while(ros::ok())
     {
         // Check that we have a map initialized
-        if(mpMap->getLatestMap() != NULL)
+        if(mpMap->getCurrent() != NULL)
         {
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -80,7 +80,7 @@ void LocalMapping::Run()
                     // Check redundant local Keyframes
                     KeyFrameCulling();
 
-                    mpMap->getLatestMap()->SetFlagAfterBA();
+                    mpMap->getCurrent()->SetFlagAfterBA();
 
                     // Tracking will see Local Mapping idle
                     if(!CheckNewKeyFrames())
@@ -174,7 +174,7 @@ void LocalMapping::ProcessNewKeyFrame()
     mpCurrentKeyFrame->UpdateConnections();
 
     // Insert Keyframe in Map
-    mpMap->getLatestMap()->AddKeyFrame(mpCurrentKeyFrame);
+    mpMap->getCurrent()->AddKeyFrame(mpCurrentKeyFrame);
 }
 
 void LocalMapping::MapPointCulling()
@@ -357,7 +357,7 @@ void LocalMapping::CreateNewMapPoints()
                 continue;
 
             // Triangulation is successful
-            MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap->getLatestMap());
+            MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap->getCurrent());
 
             pMP->AddObservation(pKF2,idx2);
             pMP->AddObservation(mpCurrentKeyFrame,idx1);
@@ -369,7 +369,7 @@ void LocalMapping::CreateNewMapPoints()
 
             pMP->UpdateNormalAndDepth();
 
-            mpMap->getLatestMap()->AddMapPoint(pMP);
+            mpMap->getCurrent()->AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
         }
     }

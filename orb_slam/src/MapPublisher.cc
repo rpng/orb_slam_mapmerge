@@ -124,16 +124,16 @@ void MapPublisher::Refresh()
        PublishCurrentCamera(Tcw);
        ResetCamFlag();
     }
-    if(mpMap->getLatestMap() != NULL && mpMap->getLatestMap()->isMapUpdated())
+    if(mpMap->getCurrent() != NULL && mpMap->getCurrent()->isMapUpdated())
     {
-        vector<KeyFrame*> vKeyFrames = mpMap->getLatestMap()->GetAllKeyFrames();
-        vector<MapPoint*> vMapPoints = mpMap->getLatestMap()->GetAllMapPoints();
-        vector<MapPoint*> vRefMapPoints = mpMap->getLatestMap()->GetReferenceMapPoints();
+        vector<KeyFrame*> vKeyFrames = mpMap->getCurrent()->GetAllKeyFrames();
+        vector<MapPoint*> vMapPoints = mpMap->getCurrent()->GetAllMapPoints();
+        vector<MapPoint*> vRefMapPoints = mpMap->getCurrent()->GetReferenceMapPoints();
 
         PublishMapPoints(vMapPoints, vRefMapPoints);   
         PublishKeyFrames(vKeyFrames);
 
-        mpMap->getLatestMap()->ResetUpdated();
+        mpMap->getCurrent()->ResetUpdated();
     }    
 }
 

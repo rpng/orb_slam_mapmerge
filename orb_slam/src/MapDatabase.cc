@@ -48,7 +48,7 @@ bool MapDatabase::setMap(Map* m){
     return false;
 }
 
-Map* MapDatabase::getLatestMap() {
+Map* MapDatabase::getCurrent() {
     return currentMap;
 }
 
@@ -60,7 +60,7 @@ bool MapDatabase::isReset() {
     return reset;
 }
 
-std::vector<Map*> MapDatabase::getAllMaps() {
+std::vector<Map*> MapDatabase::getAll() {
   return maps;
 }
 

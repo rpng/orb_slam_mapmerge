@@ -160,9 +160,9 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
     else if(nState==Tracking::WORKING)
     {
         s << " TRACKING ";
-        int nKFs = mpMap->getLatestMap()->KeyFramesInMap();
-        int nMPs = mpMap->getLatestMap()->MapPointsInMap();
-        s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << mpMap->getAllMaps().size();
+        int nKFs = mpMap->getCurrent()->KeyFramesInMap();
+        int nMPs = mpMap->getCurrent()->MapPointsInMap();
+        s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << mpMap->getAll().size();
     }
     else if(nState==Tracking::LOST_NOT_INITIALIZED || nState==Tracking::LOST_INITIALIZING)
     {

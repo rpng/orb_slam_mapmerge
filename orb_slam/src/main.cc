@@ -140,7 +140,7 @@ int main(int argc, char **argv)
     // Save keyframe poses at the end of the execution
     ofstream f;
 
-    vector<ORB_SLAM::KeyFrame*> vpKFs = WorldDB.getLatestMap()->GetAllKeyFrames();
+    vector<ORB_SLAM::KeyFrame*> vpKFs = WorldDB.getCurrent()->GetAllKeyFrames();
     sort(vpKFs.begin(),vpKFs.end(),ORB_SLAM::KeyFrame::lId);
 
     cout << endl << "Saving Keyframe Trajectory to KeyFrameTrajectory.txt" << endl;
