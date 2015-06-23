@@ -41,46 +41,46 @@ class MapDatabase
 {
 public:
 
-  // Constructor
-  MapDatabase();
+    // Constructor
+    MapDatabase();
 
-  // Adds a new map to the database
-  void addMap(Map* map);
+    // Adds a new map to the database
+    void addMap(Map* map);
 
-  // Removes a map from the database
-  void eraseMap(Map* map);
+    // Removes a map from the database
+    void eraseMap(Map* map);
 
-  // Gets the current map that we are tracking
-  Map* getLatestMap();
-  
+    // Gets the current map that we are tracking
+    Map* getLatestMap();
+
     // Gets all maps
-  std::vector<Map*> getAllMaps();
-  
-  // Sets the reset state
-  void setReset(bool res);
+    std::vector<Map*> getAllMaps();
 
-  // Returns if in a reset state or not
-  bool isReset();
+    // Sets the reset state
+    void setReset(bool res);
 
-  // Map Connection Detection
-  // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);
+    // Returns if in a reset state or not
+    bool isReset();
 
-  // Map Relocalisation Detection
-  // std::vector<Map*> DetectRelocalisationCandidates(Frame* F);
+    // Map Connection Detection
+    // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);
+
+    // Map Relocalisation Detection
+    // std::vector<Map*> DetectRelocalisationCandidates(Frame* F);
 
 protected:
 
-  // Current map
-  Map* currentMap;
-  
-  // If we are in a reset state or not
-  bool reset;
+    // Current map
+    Map* currentMap;
 
-  // List of all maps we have
-  std::vector<Map*> maps;
+    // If we are in a reset state or not
+    bool reset;
 
-  // Mutex
-  boost::mutex mapMutex;
+    // List of all maps we have
+    std::vector<Map*> maps;
+
+    // Mutex
+    boost::mutex mapMutex;
 
 };
 

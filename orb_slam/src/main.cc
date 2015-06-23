@@ -101,18 +101,17 @@ int main(int argc, char **argv)
 
     //Initialize the Tracking Thread, Local Mapping Thread and Loop Closing Thread
     ORB_SLAM::Tracking Tracker(&Vocabulary, &FramePub, &MapPub, &WorldDB, strSettingsFile);
-    Tracker.SetKeyFrameDatabase(&Database);
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB, &Database, &Vocabulary);
-    
-    // Set pointers for World DB
-    //WorldDB.SetLinks(&Tracker, &LocalMapper, &LoopCloser);
     
     // Start threads for all three
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
-
+    
+    // Set the tracker key frame database
+    Tracker.SetKeyFrameDatabase(&Database);
+    
     //Set pointers between threads
     Tracker.SetLocalMapper(&LocalMapper);
     Tracker.SetLoopClosing(&LoopCloser);
