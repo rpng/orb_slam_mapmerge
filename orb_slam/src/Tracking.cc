@@ -242,20 +242,24 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // System is initialized. Track Frame.
         bool bOK;
 
-        // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse) or Relocalisation
+        // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse)
         if(!RelocalisationRequested())
         {
-            // TODO: Add comments
-            if(!mbMotionModel || mpMap->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2) {
+            // If we are not using the motion model, have less then 4 key frames in the map, have an empty velocity vector, or have just had a relocalisation in the past two frames.
+            if(!mbMotionModel || mpMap->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+            {
                 bOK = TrackPreviousFrame();
             }
             else
             {
+                // If we have a motion model, and need to track our frame
                 bOK = TrackWithMotionModel();
+                // If not successfull, fall back and track without motion
                 if(!bOK)
                     bOK = TrackPreviousFrame();
             }
         }
+        // Else try to do Relocalisation
         else
         {
             bOK = Relocalisation();
@@ -282,22 +286,20 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
                     mCurrentFrame.mvpMapPoints[i]=NULL;
             }
         }
-
+        
+        // If we have  successfully tracked, we are working
         if(bOK)
             mState = WORKING;
+        // If we have unsuccessfully tracked, we are lost
+        // Next time we should try to do relocalisation, or re init
         else
             mState=LOST_NOT_INITIALIZED;
 
         // Reset if the camera get lost soon after initialization
-        if(mState==LOST_NOT_INITIALIZED)
+        if(mState==LOST_NOT_INITIALIZED && mpMap->getCurrent()->KeyFramesInMap()<=5)
         {
-            if(mpMap->getCurrent()->KeyFramesInMap()<=5)
-            {
-                Reset(false);
-                return;
-            }  else {
-              mState = LOST_NOT_INITIALIZED;
-            }
+            Reset(false);
+            return;
         }
 
         // Update motion model
@@ -316,12 +318,16 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
                 mVelocity = cv::Mat();
         }
 
-     }       
+     }
+     // Else unknown state
+     else {
+         ROS_ERROR("Unknown tracking state, this should not happen.");
+     }
 
     // Update drawer
     mpFramePublisher->Update(this);
     
-    // Update last frame
+    // Update last frame tracking
     mLastFrame = Frame(mCurrentFrame);
 
     if(!mCurrentFrame.mTcw.empty())
