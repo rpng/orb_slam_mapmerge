@@ -23,6 +23,7 @@
 
 #include "MapPoint.h"
 #include "KeyFrame.h"
+#include "KeyFrameDatabase.h"
 #include <set>
 
 #include <boost/thread.hpp>
@@ -34,6 +35,7 @@ namespace ORB_SLAM
 
 class MapPoint;
 class KeyFrame;
+class KeyFrameDatabase;
 
 class Map
 {
@@ -62,6 +64,10 @@ public:
     void ResetUpdated();
 
     unsigned int GetMaxKFid();
+    
+    boost::mutex mMutexKeyFrameDB;
+    void SetKeyFrameDB(KeyFrameDatabase* mpKeyFrameDB);
+    KeyFrameDatabase* GetKeyFrameDatabase();
 
     void clear();
 
@@ -72,6 +78,8 @@ protected:
     std::vector<MapPoint*> mvpReferenceMapPoints;
 
     unsigned int mnMaxKFid;
+    
+    KeyFrameDatabase* mpKeyFrameDB;
 
     boost::mutex mMutexMap;
     bool mbMapUpdated;

@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     ORB_SLAM::ORBVocabulary Vocabulary;
     Vocabulary.load(fsVoc);
 
-    cout << "Vocabulary loaded!" << endl << endl;
+      cout << "Vocabulary loaded!" << endl << endl;
 
     //Create KeyFrame Database
     ORB_SLAM::KeyFrameDatabase Database(Vocabulary);
@@ -99,18 +99,18 @@ int main(int argc, char **argv)
     //Create Map Publisher for Rviz
     ORB_SLAM::MapPublisher MapPub(&WorldDB);
 
-    //Initialize the Tracking Thread and launch
+    //Initialize the Tracking Thread, Local Mapping Thread and Loop Closing Thread
     ORB_SLAM::Tracking Tracker(&Vocabulary, &FramePub, &MapPub, &WorldDB, strSettingsFile);
-    boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
-
     Tracker.SetKeyFrameDatabase(&Database);
-
-    //Initialize the Local Mapping Thread and launch
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
-    boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
-
-    //Initialize the Loop Closing Thread and launch
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB, &Database, &Vocabulary);
+    
+    // Set pointers for World DB
+    //WorldDB.SetLinks(&Tracker, &LocalMapper, &LoopCloser);
+    
+    // Start threads for all three
+    boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
+    boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
 
     //Set pointers between threads

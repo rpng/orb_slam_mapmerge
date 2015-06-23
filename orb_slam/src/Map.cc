@@ -135,4 +135,13 @@ void Map::clear()
     mvpReferenceMapPoints.clear();
 }
 
+void Map::SetKeyFrameDB(KeyFrameDatabase* mpKeyFrameDB) {
+    boost::mutex::scoped_lock lock(mMutexKeyFrameDB);
+    this->mpKeyFrameDB = mpKeyFrameDB;
+}
+
+KeyFrameDatabase* Map::GetKeyFrameDatabase() {
+    return mpKeyFrameDB;
+}
+
 } //namespace ORB_SLAM
