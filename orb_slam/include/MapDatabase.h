@@ -49,6 +49,9 @@ public:
 
     // Removes a map from the database
     void eraseMap(Map* map);
+    
+    // Set map from the database
+    bool setMap(Map* map);
 
     // Gets the current map that we are tracking
     Map* getLatestMap();

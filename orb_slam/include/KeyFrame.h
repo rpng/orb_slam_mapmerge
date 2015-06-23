@@ -45,7 +45,10 @@ class KeyFrame
 {
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
-
+    
+    // Return map
+    Map* getMap();
+    
     // Pose functions
     void SetPose(const cv::Mat &Rcw,const cv::Mat &tcw);
     void SetPose(const cv::Mat &Tcw);

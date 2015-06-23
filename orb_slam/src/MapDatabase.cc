@@ -38,6 +38,16 @@ void MapDatabase::eraseMap(Map* map){
     
 }
 
+bool MapDatabase::setMap(Map* m){
+    for (std::size_t i = 0; i != maps.size(); ++i) {
+        if(maps[i] == m) {
+            currentMap = maps[i];
+            return true;
+        }
+    }
+    return false;
+}
+
 Map* MapDatabase::getLatestMap() {
     return currentMap;
 }

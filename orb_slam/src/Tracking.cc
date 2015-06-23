@@ -196,7 +196,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         cv_ptr->image.copyTo(im);
     }
 
-    if(mState==WORKING || mState==LOST_NOT_INITIALIZED || mState==LOST_INITIALIZING )
+    if(mState==WORKING)
         mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpORBextractor,mpORBVocabulary,mK,mDistCoef);
     else
         mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor,mpORBVocabulary,mK,mDistCoef);
@@ -236,16 +236,19 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             mState = WORKING;
     }
     // If we are working, track points
-    if(mState==WORKING)
+    else if(mState==WORKING)
     {
+         
         // System is initialized. Track Frame.
         bool bOK;
 
         // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse) or Relocalisation
         if(!RelocalisationRequested())
         {
-            if(!mbMotionModel || mpMap->getLatestMap()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+            // TODO: Add comments
+            if(!mbMotionModel || mpMap->getLatestMap()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2) {
                 bOK = TrackPreviousFrame();
+            }
             else
             {
                 bOK = TrackWithMotionModel();
@@ -266,7 +269,6 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         if(bOK)
         {
             mpMapPublisher->SetCurrentCameraPose(mCurrentFrame.mTcw);
-
             if(NeedNewKeyFrame())
                 CreateNewKeyFrame();
 
@@ -314,11 +316,13 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
                 mVelocity = cv::Mat();
         }
 
-        mLastFrame = Frame(mCurrentFrame);
      }       
 
     // Update drawer
     mpFramePublisher->Update(this);
+    
+    // Update last frame
+    mLastFrame = Frame(mCurrentFrame);
 
     if(!mCurrentFrame.mTcw.empty())
     {
@@ -514,7 +518,6 @@ bool Tracking::TrackPreviousFrame()
 {
     ORBmatcher matcher(0.9,true);
     vector<MapPoint*> vpMapPointMatches;
-
     // Search first points at coarse scale levels to get a rough initial estimate
     int minOctave = 0;
     int maxOctave = mCurrentFrame.mvScaleFactors.size()-1;
@@ -562,7 +565,6 @@ bool Tracking::TrackPreviousFrame()
 
     if(nmatches<10)
         return false;
-
     // Optimize pose again with all correspondences
     Optimizer::PoseOptimization(&mCurrentFrame);
 
@@ -883,7 +885,6 @@ bool Tracking::Relocalisation()
         vpCandidateKFs = mpLastKeyFrame->GetBestCovisibilityKeyFrames(9);
         vpCandidateKFs.push_back(mpLastKeyFrame);
     }
-
     if(vpCandidateKFs.empty())
         return false;
 
@@ -903,7 +904,6 @@ bool Tracking::Relocalisation()
     vbDiscarded.resize(nKFs);
 
     int nCandidates=0;
-
     for(size_t i=0; i<vpCandidateKFs.size(); i++)
     {
         KeyFrame* pKF = vpCandidateKFs[i];
@@ -931,7 +931,8 @@ bool Tracking::Relocalisation()
     // Until we found a camera pose supported by enough inliers
     bool bMatch = false;
     ORBmatcher matcher2(0.9,true);
-
+    int match = -1;
+    
     while(nCandidates>0 && !bMatch)
     {
         for(size_t i=0; i<vpCandidateKFs.size(); i++)
@@ -1013,11 +1014,11 @@ bool Tracking::Relocalisation()
                     }
                 }
 
-
                 // If the pose is supported by enough inliers stop ransacs and continue
                 if(nGood>=50)
-                {                    
+                {
                     bMatch = true;
+                    match = i;
                     break;
                 }
             }
@@ -1029,9 +1030,18 @@ bool Tracking::Relocalisation()
         return false;
     }
     else
-    {
+    {  
         mnLastRelocFrameId = mCurrentFrame.mnId;
-        return true;
+        // If we have a match id, get its map, and update the mapDB's current map
+        if(match != -1 && mpMap->setMap(vpCandidateKFs[match]->getMap())) {
+            ROS_INFO("Successful relocalisation to old map.");
+             return true;
+        }
+        else {
+            ROS_ERROR("Unable to find the map linked to relocalized keyframe.");
+            return false;
+        }
+        
     }
 
 }
