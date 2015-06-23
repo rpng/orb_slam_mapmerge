@@ -137,16 +137,18 @@ int main(int argc, char **argv)
         Tracker.CheckResetByPublishers();
         r.sleep();
     }
-
+    
+    // Nice new line
+    cout << endl;
     // Save keyframe poses at the end of the execution
-    for (std::size_t i = 0; i != WorldDB.getAll().size(); ++i) {
+    for (std::size_t i = 0; i < WorldDB.getAll().size(); ++i) {
         // Output stream
         ofstream f;
         // Get keyframes of current map
         vector<ORB_SLAM::KeyFrame*> vpKFs = WorldDB.getAll().at(i)->GetAllKeyFrames();
         sort(vpKFs.begin(),vpKFs.end(),ORB_SLAM::KeyFrame::lId);
         // Export information, open file
-        cout << endl << "Saving Keyframe Trajectory to KeyFrameTrajectory.txt" << endl;
+        cout << "Saving Data:   /generated/KeyFrameTrajectory_" << i << ".txt"<< endl;
         std::ostringstream oss;
         oss << ros::package::getPath("orb_slam") << "/generated/KeyFrameTrajectory_" << i << ".txt";
         f.open(oss.str().c_str());
