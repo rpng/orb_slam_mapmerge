@@ -144,6 +144,7 @@ protected:
 
     //Map
     MapDatabase* mpMap;
+    Map* localMap;
 
     //Calibration matrix
     cv::Mat mK;

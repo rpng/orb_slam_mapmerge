@@ -44,8 +44,8 @@ namespace ORB_SLAM
 
 
 Tracking::Tracking(ORBVocabulary* pVoc, FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
-    mState(NO_IMAGES_YET), mpORBVocabulary(pVoc), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap),
-    mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
+    mState(NO_IMAGES_YET), mpORBVocabulary(pVoc), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap), 
+    localMap(NULL), mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
 {
     // Load camera parameters from settings file
 
@@ -411,12 +411,9 @@ void Tracking::Initialize(bool first_time)
 
 void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
 {
-    // Create new map in database, if not in reset state
-    if(!mpMap->isReset()) {
-      mpMap->addMap(new Map); 
-    } else {
-      mpMap->setReset(false);
-    }
+    // Create new map in database
+    if(!localMap)
+        localMap = new Map;
     
     // Set Frame Poses
     mInitialFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
@@ -425,15 +422,15 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     tcw.copyTo(mCurrentFrame.mTcw.rowRange(0,3).col(3));
 
     // Create KeyFrames
-    KeyFrame* pKFini = new KeyFrame(mInitialFrame,mpMap->getCurrent(),mpKeyFrameDB);
-    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,mpMap->getCurrent(),mpKeyFrameDB);
+    KeyFrame* pKFini = new KeyFrame(mInitialFrame,localMap,mpKeyFrameDB);
+    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,localMap,mpKeyFrameDB);
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
 
     // Insert KFs in the map
-    mpMap->getCurrent()->AddKeyFrame(pKFini);
-    mpMap->getCurrent()->AddKeyFrame(pKFcur);
+    localMap->AddKeyFrame(pKFini);
+    localMap->AddKeyFrame(pKFcur);
 
     // Create MapPoints and associate to keyframes
     for(size_t i=0; i<mvIniMatches.size();i++)
@@ -444,7 +441,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
         //Create MapPoint.
         cv::Mat worldPos(mvIniP3D[i]);
 
-        MapPoint* pMP = new MapPoint(worldPos,pKFcur,mpMap->getCurrent());
+        MapPoint* pMP = new MapPoint(worldPos,pKFcur,localMap);
 
         pKFini->AddMapPoint(pMP,i);
         pKFcur->AddMapPoint(pMP,mvIniMatches[i]);
@@ -459,7 +456,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
         mCurrentFrame.mvpMapPoints[mvIniMatches[i]] = pMP;
 
         //Add to Map
-        mpMap->getCurrent()->AddMapPoint(pMP);
+        localMap->AddMapPoint(pMP);
 
     }
 
@@ -468,9 +465,9 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    ROS_INFO("New Map created with %d points",mpMap->getCurrent()->MapPointsInMap());
+    ROS_INFO("New Map created with %d points",localMap->MapPointsInMap());
 
-    Optimizer::GlobalBundleAdjustemnt(mpMap->getCurrent(),20);
+    Optimizer::GlobalBundleAdjustemnt(localMap,20);
 
     // Set median depth to 1
     float medianDepth = pKFini->ComputeSceneMedianDepth(2);
@@ -509,12 +506,17 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
 
     mvpLocalKeyFrames.push_back(pKFcur);
     mvpLocalKeyFrames.push_back(pKFini);
-    mvpLocalMapPoints=mpMap->getCurrent()->GetAllMapPoints();
+    mvpLocalMapPoints=localMap->GetAllMapPoints();
     mpReferenceKF = pKFcur;
 
-    mpMap->getCurrent()->SetReferenceMapPoints(mvpLocalMapPoints);
+    localMap->SetReferenceMapPoints(mvpLocalMapPoints);
 
     mpMapPublisher->SetCurrentCameraPose(pKFcur->GetPose());
+    
+    // Add to db
+    mpMap->addMap(localMap);
+    // Remove old map
+    localMap = NULL;
 
     mState=WORKING;
 }
@@ -1093,8 +1095,7 @@ void Tracking::Reset(bool first_time)
     // Clear BoW Database
     mpKeyFrameDB->clear();
     // Clear Map (this erase MapPoints and KeyFrames)
-    mpMap->getCurrent()->clear();
-    mpMap->setReset(true);
+    localMap->clear();
 
     KeyFrame::nNextId = 0;
     Frame::nNextId = 0;
