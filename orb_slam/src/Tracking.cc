@@ -43,8 +43,8 @@ namespace ORB_SLAM
 {
 
 
-Tracking::Tracking(ORBVocabulary* pVoc, FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
-    mState(NO_IMAGES_YET), mpORBVocabulary(pVoc), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap), 
+Tracking::Tracking(FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
+    mState(NO_IMAGES_YET), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap), 
     localMap(NULL), mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
 {
     // Load camera parameters from settings file
@@ -152,11 +152,6 @@ void Tracking::SetLoopClosing(LoopClosing *pLoopClosing)
     mpLoopClosing=pLoopClosing;
 }
 
-void Tracking::SetKeyFrameDatabase(KeyFrameDatabase *pKFDB)
-{
-    mpKeyFrameDB = pKFDB;
-}
-
 void Tracking::Run()
 {
     ros::NodeHandle nodeHandler;
@@ -197,9 +192,9 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     }
 
     if(mState==WORKING)
-        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpORBextractor,mpORBVocabulary,mK,mDistCoef);
+        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpORBextractor, mpMap->getVocab(),mK,mDistCoef);
     else
-        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor,mpORBVocabulary,mK,mDistCoef);
+        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor, mpMap->getVocab(),mK,mDistCoef);
 
     // Depending on the state of the Tracker we perform different tasks
     // If no images, we are no initialized
@@ -413,7 +408,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
 {
     // Create new map in database
     if(!localMap)
-        localMap = new Map;
+        localMap = mpMap->getNewMap();
     
     // Set Frame Poses
     mInitialFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
@@ -422,8 +417,8 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     tcw.copyTo(mCurrentFrame.mTcw.rowRange(0,3).col(3));
 
     // Create KeyFrames
-    KeyFrame* pKFini = new KeyFrame(mInitialFrame,localMap,mpKeyFrameDB);
-    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,localMap,mpKeyFrameDB);
+    KeyFrame* pKFini = new KeyFrame(mInitialFrame,localMap,localMap->GetKeyFrameDatabase());
+    KeyFrame* pKFcur = new KeyFrame(mCurrentFrame,localMap,localMap->GetKeyFrameDatabase());
 
     pKFini->ComputeBoW();
     pKFcur->ComputeBoW();
@@ -701,7 +696,7 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
-    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap->getCurrent(),mpKeyFrameDB);
+    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap->getCurrent(),mpMap->getCurrent()->GetKeyFrameDatabase());
 
     mpLocalMapper->InsertKeyFrame(pKF);
 
@@ -884,7 +879,7 @@ bool Tracking::Relocalisation()
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
     vector<KeyFrame*> vpCandidateKFs;
     if(!RelocalisationRequested())
-        vpCandidateKFs= mpKeyFrameDB->DetectRelocalisationCandidates(&mCurrentFrame);
+        vpCandidateKFs= mpMap->getCurrent()->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
     else // Forced Relocalisation: Relocate against local window around last keyframe
     {
         boost::mutex::scoped_lock lock(mMutexForceRelocalisation);
@@ -1093,7 +1088,7 @@ void Tracking::Reset(bool first_time)
     // Reset Loop Closing
     mpLoopClosing->RequestReset();
     // Clear BoW Database
-    mpKeyFrameDB->clear();
+    localMap->GetKeyFrameDatabase()->clear();
     // Clear Map (this erase MapPoints and KeyFrames)
     localMap->clear();
 

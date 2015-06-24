@@ -35,8 +35,8 @@
 namespace ORB_SLAM
 {
 
-LoopClosing::LoopClosing(MapDatabase *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc):
-    mbResetRequested(false), mpMap(pMap), mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mLastLoopKFid(0)
+LoopClosing::LoopClosing(MapDatabase *pMap):
+    mbResetRequested(false), mpMap(pMap), mLastLoopKFid(0)
 {
     mnCovisibilityConsistencyTh = 3;
     mpMatchedKF = NULL;
@@ -111,7 +111,7 @@ bool LoopClosing::DetectLoop()
     //If the map contains less than 10 KF or less than 10KF have passed from last loop detection
     if(mpCurrentKF->mnId<mLastLoopKFid+10)
     {
-        mpKeyFrameDB->add(mpCurrentKF);
+        mpMap->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
         mpCurrentKF->SetErase();
         return false;
     }
@@ -129,20 +129,20 @@ bool LoopClosing::DetectLoop()
             continue;
         DBoW2::BowVector BowVec = pKF->GetBowVector();
 
-        float score = mpORBVocabulary->score(CurrentBowVec, BowVec);
+        float score = mpMap->getVocab()->score(CurrentBowVec, BowVec);
 
         if(score<minScore)
             minScore = score;
     }
 
     // Query the database imposing the minimum score
-    vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectLoopCandidates(mpCurrentKF, minScore);
+    vector<KeyFrame*> vpCandidateKFs = mpMap->getCurrent()->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
 
 
     // If there are no loop candidates, just add new keyframe and return false
     if(vpCandidateKFs.empty())
     {
-        mpKeyFrameDB->add(mpCurrentKF);
+        mpMap->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
         mvConsistentGroups.clear();
         mpCurrentKF->SetErase();
         return false;
@@ -211,7 +211,7 @@ bool LoopClosing::DetectLoop()
 
 
     // Add Current Keyframe to database
-    mpKeyFrameDB->add(mpCurrentKF);
+    mpMap->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
 
     if(mvpEnoughConsistentCandidates.empty())
     {

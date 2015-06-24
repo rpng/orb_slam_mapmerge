@@ -22,15 +22,25 @@
 namespace ORB_SLAM
 {
 
-MapDatabase::MapDatabase() {
-  // Init varibles
-  currentMap = NULL;
-  maps = std::vector<Map*>();
+MapDatabase::MapDatabase(ORBVocabulary* vocab) {
+    // Init varibles
+    this->vocab = vocab;
+    this->currentMap = NULL;
+    this->maps = std::vector<Map*>();
+}
+
+Map* MapDatabase::getNewMap() {
+    // Create map and new db
+    Map* temp = new Map;
+    KeyFrameDatabase* db = new KeyFrameDatabase(*vocab);
+    // Set the db, and return the new object
+    temp->SetKeyFrameDB(db);
+    return temp;
 }
 
 void MapDatabase::addMap(Map* map) {
-  maps.push_back(map);
-  currentMap = map;
+    maps.push_back(map);
+    currentMap = map;
 }
 
 void MapDatabase::eraseMap(Map* map){
@@ -52,9 +62,12 @@ Map* MapDatabase::getCurrent() {
 }
 
 std::vector<Map*> MapDatabase::getAll() {
-  return maps;
+    return maps;
 }
 
+ORBVocabulary* MapDatabase::getVocab() {
+    return vocab;
+}
 
 // std::vector<Map*> MapDatabase::DetectConnectionCandidates(KeyFrame* pKF, float minScore) {
 // }

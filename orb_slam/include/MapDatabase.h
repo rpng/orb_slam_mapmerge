@@ -26,6 +26,7 @@
 #include "Map.h"
 #include "KeyFrame.h"
 #include "Frame.h"
+#include "ORBVocabulary.h"
 
 #include <boost/thread.hpp>
 
@@ -42,8 +43,12 @@ class MapDatabase
 public:
 
     // Constructor
-    MapDatabase();
-
+    MapDatabase(ORBVocabulary* vocab);
+    
+    // Returns a complete map object
+    // This will be loaded with the vocab we have
+    Map* getNewMap();
+    
     // Adds a new map to the database
     void addMap(Map* map);
 
@@ -55,6 +60,9 @@ public:
 
     // Gets the current map that we are tracking
     Map* getCurrent();
+    
+    // Gets the vocab object
+    ORBVocabulary* getVocab();
 
     // Gets all maps
     std::vector<Map*> getAll();
@@ -69,6 +77,9 @@ protected:
 
     // Current map
     Map* currentMap;
+    
+    // Vocabulary
+    ORBVocabulary* vocab;
 
     // List of all maps we have
     std::vector<Map*> maps;

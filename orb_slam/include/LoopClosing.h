@@ -51,7 +51,7 @@ public:
 
 public:
 
-    LoopClosing(MapDatabase* pMap, KeyFrameDatabase* pDB, ORBVocabulary* pVoc);
+    LoopClosing(MapDatabase* pMap);
 
     void SetTracker(Tracking* pTracker);
 
@@ -81,9 +81,6 @@ protected:
 
     MapDatabase* mpMap;
     Tracking* mpTracker;
-
-    KeyFrameDatabase* mpKeyFrameDB;
-    ORBVocabulary* mpORBVocabulary;
 
     LocalMapping *mpLocalMapper;
 

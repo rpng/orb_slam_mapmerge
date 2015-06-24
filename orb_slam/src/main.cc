@@ -89,11 +89,8 @@ int main(int argc, char **argv)
 
       cout << "Vocabulary loaded!" << endl << endl;
 
-    //Create KeyFrame Database
-    ORB_SLAM::KeyFrameDatabase Database(Vocabulary);
-
     //Create the map database
-    ORB_SLAM::MapDatabase WorldDB;
+    ORB_SLAM::MapDatabase WorldDB(&Vocabulary);
 
     FramePub.SetMapDB(&WorldDB);
 
@@ -101,17 +98,14 @@ int main(int argc, char **argv)
     ORB_SLAM::MapPublisher MapPub(&WorldDB);
 
     //Initialize the Tracking Thread, Local Mapping Thread and Loop Closing Thread
-    ORB_SLAM::Tracking Tracker(&Vocabulary, &FramePub, &MapPub, &WorldDB, strSettingsFile);
+    ORB_SLAM::Tracking Tracker(&FramePub, &MapPub, &WorldDB, strSettingsFile);
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
-    ORB_SLAM::LoopClosing LoopCloser(&WorldDB, &Database, &Vocabulary);
+    ORB_SLAM::LoopClosing LoopCloser(&WorldDB);
     
     // Start threads for all three
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
-    
-    // Set the tracker key frame database
-    Tracker.SetKeyFrameDatabase(&Database);
     
     //Set pointers between threads
     Tracker.SetLocalMapper(&LocalMapper);

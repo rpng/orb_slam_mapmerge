@@ -54,7 +54,7 @@ class Tracking
 {  
 
 public:
-    Tracking(ORBVocabulary* pVoc, FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, string strSettingPath);
+    Tracking(FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, string strSettingPath);
 
     enum eTrackingState{
         SYSTEM_NOT_READY=-1,
@@ -68,7 +68,6 @@ public:
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);
-    void SetKeyFrameDatabase(KeyFrameDatabase* pKFDB);
 
     // This is the main function of the Tracking Thread
     void Run();
