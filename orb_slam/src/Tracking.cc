@@ -878,8 +878,15 @@ bool Tracking::Relocalisation()
     // Relocalisation is performed when tracking is lost and forced at some stages during loop closing
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
     vector<KeyFrame*> vpCandidateKFs;
-    if(!RelocalisationRequested())
-        vpCandidateKFs= mpMap->getCurrent()->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
+    if(!RelocalisationRequested())  {
+        // Clear all old candiates
+        vpCandidateKFs.clear();
+        // Add all keyframe candidates we have
+        for(size_t i=0; i<mpMap->getAll().size(); i++) {
+            vector<KeyFrame*> temp = mpMap->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
+            vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
+        }
+    }
     else // Forced Relocalisation: Relocate against local window around last keyframe
     {
         boost::mutex::scoped_lock lock(mMutexForceRelocalisation);
