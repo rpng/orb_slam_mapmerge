@@ -32,6 +32,7 @@
 #include "MapPublisher.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
+#include "MapClosing.h"
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 
@@ -101,11 +102,13 @@ int main(int argc, char **argv)
     ORB_SLAM::Tracking Tracker(&FramePub, &MapPub, &WorldDB, strSettingsFile);
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB);
+    ORB_SLAM::MapClosing MapCloser(&WorldDB);
     
     // Start threads for all three
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
+    boost::thread mapClosingThread(&ORB_SLAM::MapClosing::Run, &MapCloser);
     
     //Set pointers between threads
     Tracker.SetLocalMapper(&LocalMapper);
@@ -116,6 +119,10 @@ int main(int argc, char **argv)
 
     LoopCloser.SetTracker(&Tracker);
     LoopCloser.SetLocalMapper(&LocalMapper);
+    
+    MapCloser.SetTracker(&Tracker);
+    MapCloser.SetLocalMapper(&LocalMapper);
+    MapCloser.SetLoopCloser(&LoopCloser);
 
     //This "main" thread will show the current processed frame and publish the map
     float fps = fsSettings["Camera.fps"];

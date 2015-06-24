@@ -18,11 +18,37 @@
 #ifndef MAPCLOSING_H
 #define MAPCLOSING_H
 
+#include "MapDatabase.h"
+
+#include "Tracking.h"
+#include "LocalMapping.h"
+#include "LoopClosing.h"
+
+
 namespace ORB_SLAM
 {
 
+class MapClosing
+{
+    
+public:
+    MapClosing(MapDatabase *mapDB);
+    
+    void Run();
+    
+    void SetTracker(Tracking* pTracker);
+    void SetLocalMapper(LocalMapping* pLocalMapper);
+    void SetLoopCloser(LoopClosing* pLoopCloser);
   
+protected:
+     MapDatabase* mapDB;
+     
+     Tracking* mpTracker;
+    LocalMapping *mpLocalMapper;
+    LoopClosing* mpLoopCloser;
 
+
+};
 } //namespace ORB_SLAM
 
 #endif // MAPCLOSING_H

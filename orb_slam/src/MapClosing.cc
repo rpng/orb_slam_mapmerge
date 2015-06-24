@@ -17,8 +17,43 @@
 
 #include "MapClosing.h"
 
+#include <ros/ros.h>
+
 namespace ORB_SLAM
 {
+
+MapClosing::MapClosing(MapDatabase *pMap) {
+    mapDB = pMap;
+}
+
+void MapClosing::SetTracker(Tracking* pTracker) {
+    mpTracker=pTracker;
+}
+
+void MapClosing::SetLocalMapper(LocalMapping* pLocalMapper) {
+    mpLocalMapper=pLocalMapper;
+}
+
+ void MapClosing::SetLoopCloser(LoopClosing* pLoopCloser) {
+     mpLoopCloser=pLoopCloser;
+ }
+
+void MapClosing::Run()
+{
+
+    ros::Rate r(1000000);
+
+    while(ros::ok())
+    {
+        // Check that we have a map initialized
+        if(mapDB->getCurrent() != NULL)
+        {
+            
+        }
+
+        r.sleep();
+    }
+}
 
 
 } //namespace ORB_SLAM
