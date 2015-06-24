@@ -1045,7 +1045,7 @@ bool Tracking::Relocalisation()
         // If we have a match id, get its map, and update the mapDB's current map
         if(match != -1 && mpMap->setMap(vpCandidateKFs[match]->getMap())) {
             ROS_INFO("Successful relocalisation to old map.");
-             return true;
+            return true;
         }
         else {
             ROS_ERROR("Unable to find the map linked to relocalized keyframe.");
