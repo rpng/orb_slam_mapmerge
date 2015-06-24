@@ -35,6 +35,13 @@ KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc):
     mvInvertedFile.resize(voc.size());
 }
 
+KeyFrameDatabase:: ~KeyFrameDatabase() {
+    for(vector<list<KeyFrame*> >::iterator sit=mvInvertedFile.begin(), send=mvInvertedFile.end(); sit!=send; sit++){
+            for(list<KeyFrame*>::iterator sit2=(*sit).begin(), send2=(*sit).end(); sit2!=send2; sit2++){
+                //delete *sit2;
+            } 
+    }
+}
 
 void KeyFrameDatabase::add(KeyFrame *pKF)
 {

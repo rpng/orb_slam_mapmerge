@@ -29,6 +29,21 @@ Map::Map()
     mnMaxKFid = 0;
 }
 
+Map::~Map()
+{
+    for(set<MapPoint*>::iterator sit=mspMapPoints.begin(), send=mspMapPoints.end(); sit!=send; sit++)
+        delete *sit;
+        
+    for(set<KeyFrame*>::iterator sit=mspKeyFrames.begin(), send=mspKeyFrames.end(); sit!=send; sit++)
+        delete *sit;
+        
+    if(!mvpReferenceMapPoints.empty())
+         for(vector<MapPoint*>::iterator sit=mvpReferenceMapPoints.begin(), send=mvpReferenceMapPoints.end(); sit!=send; sit++)
+            delete *sit;
+            
+    delete mpKeyFrameDB;
+}
+
 void Map::AddKeyFrame(KeyFrame *pKF)
 {
     boost::mutex::scoped_lock lock(mMutexMap);

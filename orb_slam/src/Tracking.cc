@@ -233,7 +233,6 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     // If we are working, track points
     else if(mState==WORKING)
     {
-         
         // System is initialized. Track Frame.
         bool bOK;
 
@@ -270,7 +269,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             mpMapPublisher->SetCurrentCameraPose(mCurrentFrame.mTcw);
             if(NeedNewKeyFrame())
                 CreateNewKeyFrame();
-
+        
             // We allow points with high innovation (considererd outliers by the Huber Function)
             // pass to the new keyframe, so that bundle adjustment will finally decide
             // if they are outliers or not. We don't want next frame to estimate its position
@@ -289,13 +288,6 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // Next time we should try to do relocalisation, or re init
         else
             mState=LOST_NOT_INITIALIZED;
-
-        // Reset if the camera get lost soon after initialization
-        if(mState==LOST_NOT_INITIALIZED && mpMap->getCurrent()->KeyFramesInMap()<=5)
-        {
-            Reset(false);
-            return;
-        }
 
         // Update motion model
         if(mbMotionModel)
@@ -318,7 +310,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
      else {
          ROS_ERROR("Unknown tracking state, this should not happen.");
      }
-
+    
     // Update drawer
     mpFramePublisher->Update(this);
     
@@ -641,7 +633,6 @@ bool Tracking::TrackLocalMap()
             if(!mCurrentFrame.mvbOutlier[i])
                 mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
         }
-
     // Decide if the tracking was successful
     // More restrictive if there was a relocalization recently
     if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
@@ -1089,15 +1080,20 @@ void Tracking::Reset(bool first_time)
         }
         r.sleep();
     }
-
+    
     // Reset Local Mapping
     mpLocalMapper->RequestReset();
     // Reset Loop Closing
     mpLoopClosing->RequestReset();
-    // Clear BoW Database
-    localMap->GetKeyFrameDatabase()->clear();
-    // Clear Map (this erase MapPoints and KeyFrames)
-    localMap->clear();
+    // This should be only called if the local map fails
+    // We let the map closing thread close all the maps, 
+    // and do culling on the maps created
+    if(localMap) {
+        // Clear BoW Database
+        localMap->GetKeyFrameDatabase()->clear();
+        // Clear Map (this erase MapPoints and KeyFrames)
+        localMap->clear();
+    }
 
     KeyFrame::nNextId = 0;
     Frame::nNextId = 0;

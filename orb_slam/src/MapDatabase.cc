@@ -43,8 +43,20 @@ void MapDatabase::addMap(Map* map) {
     currentMap = map;
 }
 
-void MapDatabase::eraseMap(Map* map){
-    
+void MapDatabase::eraseMap(Map* m){
+    // Check to see if it is the current one
+    if(m == currentMap)
+        currentMap = NULL;
+    // Delete it
+    for (std::size_t i = 0; i != maps.size(); ++i) {
+        // If a match is found delete it, and remove it from the  vector
+        if(maps[i] == m) {
+            Map* temp = maps[i];
+            maps.erase(maps.begin()+i);
+            delete temp;
+            return;
+        }
+    }
 }
 
 bool MapDatabase::setMap(Map* m){
