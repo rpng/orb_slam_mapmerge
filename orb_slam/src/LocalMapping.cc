@@ -29,7 +29,7 @@ namespace ORB_SLAM
 {
 
 LocalMapping::LocalMapping(MapDatabase *pMap):
-    mbResetRequested(false), mpMap(pMap),  mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbAcceptKeyFrames(true)
+    mbResetRequested(false), mpMap(pMap),  mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbAcceptKeyFrames(true), gracefullStatus(false)
 {
 }
 
@@ -49,8 +49,8 @@ void LocalMapping::Run()
     ros::Rate r(500);
     while(ros::ok())
     {
-        // Check that we have a map initialized
-        if(mpMap->getCurrent() != NULL)
+        // Check that we have a map initialized, and we are not gracefully stopped
+        if(mpMap->getCurrent() != NULL && gracefullStatus)
         {
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -524,6 +524,16 @@ void LocalMapping::SetAcceptKeyFrames(bool flag)
 void LocalMapping::InterruptBA()
 {
     mbAbortBA = true;
+}
+
+void LocalMapping::gracefullStart()
+{
+    gracefullStatus = true;
+}
+
+void LocalMapping::gracefullStop()
+{
+    gracefullStatus = false;
 }
 
 void LocalMapping::KeyFrameCulling()

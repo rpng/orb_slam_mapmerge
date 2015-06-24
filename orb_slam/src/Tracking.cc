@@ -219,20 +219,28 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     {
         if(!Relocalisation())
             FirstInitialization(false);
-        else
+        else {
             mState = WORKING;
+            // Ensure that our other threads are started
+            mpLocalMapper->gracefullStart();
+            mpLoopClosing->gracefullStart();
+        }
     } 
     // If we have first init, try to create initial map
     else if(mState==LOST_INITIALIZING)
     {
         if(!Relocalisation())
             Initialize(false);
-        else
+        else {
             mState = WORKING;
+            // Ensure that our other threads are started
+            mpLocalMapper->gracefullStart();
+            mpLoopClosing->gracefullStart();
+        }
     }
     // If we are working, track points
     else if(mState==WORKING)
-    {
+    {        
         // System is initialized. Track Frame.
         bool bOK;
 
@@ -286,8 +294,13 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             mState = WORKING;
         // If we have unsuccessfully tracked, we are lost
         // Next time we should try to do relocalisation, or re init
-        else
+        else {
+            // Tell the other threads to stop
+            mpLocalMapper->gracefullStop();
+            mpLoopClosing->gracefullStop();
+            // Set lost state
             mState=LOST_NOT_INITIALIZED;
+        }
 
         // Update motion model
         if(mbMotionModel)
@@ -506,6 +519,10 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     localMap = NULL;
 
     mState=WORKING;
+    
+    // Ensure that our other threads are started
+    mpLocalMapper->gracefullStart();
+    mpLoopClosing->gracefullStart();
 }
 
 

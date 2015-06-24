@@ -57,7 +57,7 @@ public:
     
     // Set map from the database
     bool setMap(Map* map);
-
+    
     // Gets the current map that we are tracking
     Map* getCurrent();
     
@@ -86,6 +86,7 @@ protected:
 
     // Mutex
     boost::mutex mapMutex;
+    boost::mutex vocMutex;
 
 };
 

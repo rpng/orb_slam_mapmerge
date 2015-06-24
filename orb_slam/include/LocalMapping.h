@@ -67,6 +67,9 @@ public:
     void SetAcceptKeyFrames(bool flag);
 
     void InterruptBA();
+    
+    void gracefullStart();
+    void gracefullStop();    
 
 protected:
 
@@ -108,6 +111,8 @@ protected:
 
     bool mbAcceptKeyFrames;
     boost::mutex mMutexAccept;
+    
+    bool gracefullStatus;
 };
 
 } //namespace ORB_SLAM

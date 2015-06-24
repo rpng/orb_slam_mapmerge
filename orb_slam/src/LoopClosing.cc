@@ -36,7 +36,7 @@ namespace ORB_SLAM
 {
 
 LoopClosing::LoopClosing(MapDatabase *pMap):
-    mbResetRequested(false), mpMap(pMap), mLastLoopKFid(0)
+    mbResetRequested(false), mpMap(pMap), mLastLoopKFid(0), gracefullStatus(false)
 {
     mnCovisibilityConsistencyTh = 3;
     mpMatchedKF = NULL;
@@ -60,8 +60,8 @@ void LoopClosing::Run()
 
     while(ros::ok())
     {
-        // Check that we have a map initialized
-        if(mpMap->getCurrent() != NULL)
+        // Check that we have a map initialized, and we are not gracefully stopped
+        if(mpMap->getCurrent() != NULL && gracefullStatus)
         {
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -79,7 +79,7 @@ void LoopClosing::Run()
             }
         }
 
-        ResetIfRequested();
+        ResetIfRequested();        
         // This sleep allows for the Local Mapping thread to gather more keyframes
         r.sleep();
     }
@@ -591,6 +591,16 @@ void LoopClosing::RequestReset()
         }
         r.sleep();
     }
+}
+
+void LoopClosing::gracefullStart()
+{
+    gracefullStatus = true;
+}
+
+void LoopClosing::gracefullStop()
+{
+    gracefullStatus = false;
 }
 
 void LoopClosing::ResetIfRequested()

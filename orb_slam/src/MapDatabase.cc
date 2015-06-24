@@ -30,6 +30,7 @@ MapDatabase::MapDatabase(ORBVocabulary* vocab) {
 }
 
 Map* MapDatabase::getNewMap() {
+    //boost::mutex::scoped_lock lock(vocMutex);
     // Create map and new db
     Map* temp = new Map;
     KeyFrameDatabase* db = new KeyFrameDatabase(*vocab);
@@ -39,11 +40,13 @@ Map* MapDatabase::getNewMap() {
 }
 
 void MapDatabase::addMap(Map* map) {
+    //boost::mutex::scoped_lock lock(mapMutex);
     maps.push_back(map);
     currentMap = map;
 }
 
 void MapDatabase::eraseMap(Map* m){
+    //boost::mutex::scoped_lock lock(mapMutex);
     // Check to see if it is the current one
     if(m == currentMap)
         currentMap = NULL;
@@ -60,6 +63,7 @@ void MapDatabase::eraseMap(Map* m){
 }
 
 bool MapDatabase::setMap(Map* m){
+    //boost::mutex::scoped_lock lock(mapMutex);
     for (std::size_t i = 0; i != maps.size(); ++i) {
         if(maps[i] == m) {
             currentMap = maps[i];
@@ -70,14 +74,17 @@ bool MapDatabase::setMap(Map* m){
 }
 
 Map* MapDatabase::getCurrent() {
+    //boost::mutex::scoped_lock lock(mapMutex);
     return currentMap;
 }
 
 std::vector<Map*> MapDatabase::getAll() {
+    //boost::mutex::scoped_lock lock(mapMutex);
     return maps;
 }
 
 ORBVocabulary* MapDatabase::getVocab() {
+    //boost::mutex::scoped_lock lock(vocMutex);
     return vocab;
 }
 

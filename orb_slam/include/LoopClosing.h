@@ -62,6 +62,9 @@ public:
     void InsertKeyFrame(KeyFrame *pKF);
 
     void RequestReset();
+    
+    void gracefullStart();
+    void gracefullStop();    
 
 protected:
 
@@ -106,6 +109,8 @@ protected:
     double mScale_cw;
 
     long unsigned int mLastLoopKFid;
+    
+    bool gracefullStatus;
 };
 
 } //namespace ORB_SLAM
