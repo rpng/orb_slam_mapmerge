@@ -25,7 +25,6 @@ namespace ORB_SLAM
 MapDatabase::MapDatabase() {
   // Init varibles
   currentMap = NULL;
-  reset = false;
   maps = std::vector<Map*>();
 }
 
