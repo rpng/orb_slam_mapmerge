@@ -31,6 +31,7 @@
 #include "Map.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
+#include "MapClosing.h"
 #include "Frame.h"
 #include "ORBVocabulary.h"
 #include "KeyFrameDatabase.h"
@@ -49,6 +50,7 @@ class MapDatabase;
 class Map;
 class LocalMapping;
 class LoopClosing;
+class MapClosing;
 
 class Tracking
 {  
@@ -68,6 +70,7 @@ public:
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopClosing(LoopClosing* pLoopClosing);
+    void SetMapClosing(MapClosing* pMapClosing);
 
     // This is the main function of the Tracking Thread
     void Run();
@@ -120,6 +123,7 @@ protected:
     //Other Thread Pointers
     LocalMapping* mpLocalMapper;
     LoopClosing* mpLoopClosing;
+    MapClosing* mpMapClosing;
 
     //ORB
     ORBextractor* mpORBextractor;

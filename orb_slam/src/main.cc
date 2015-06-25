@@ -113,6 +113,7 @@ int main(int argc, char **argv)
     //Set pointers between threads
     Tracker.SetLocalMapper(&LocalMapper);
     Tracker.SetLoopClosing(&LoopCloser);
+    Tracker.SetMapClosing(&MapCloser);
 
     LocalMapper.SetTracker(&Tracker);
     LocalMapper.SetLoopCloser(&LoopCloser);

@@ -30,6 +30,7 @@ namespace ORB_SLAM
 
 MapClosing::MapClosing(MapDatabase *pMap) {
     mapDB = pMap;
+    gracefullStatus = false;
 }
 
 void MapClosing::SetTracker(Tracking* pTracker) {
@@ -52,7 +53,7 @@ void MapClosing::Run()
     while(ros::ok())
     {
         // Check that we have a map initialized
-        if(mapDB->getCurrent() != NULL)
+        if(mapDB->getCurrent() != NULL && gracefullStatus)
         {
               // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -84,6 +85,16 @@ bool MapClosing::CheckNewKeyFrames()
 {
     boost::mutex::scoped_lock lock(mMutexLoopQueue);
     return(!mlpLoopKeyFrameQueue.empty());
+}
+
+void MapClosing::gracefullStart()
+{
+    gracefullStatus = true;
+}
+
+void MapClosing::gracefullStop()
+{
+    gracefullStatus = false;
 }
 
 bool MapClosing::DetectLoop()

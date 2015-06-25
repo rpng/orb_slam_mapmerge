@@ -152,6 +152,10 @@ void Tracking::SetLoopClosing(LoopClosing *pLoopClosing)
     mpLoopClosing=pLoopClosing;
 }
 
+void Tracking::SetMapClosing(MapClosing* pMapClosing) {
+    mpMapClosing=pMapClosing;
+}
+
 void Tracking::Run()
 {
     ros::NodeHandle nodeHandler;
@@ -224,6 +228,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             // Ensure that our other threads are started
             mpLocalMapper->gracefullStart();
             mpLoopClosing->gracefullStart();
+            mpMapClosing->gracefullStart();
         }
     } 
     // If we have first init, try to create initial map
@@ -236,6 +241,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             // Ensure that our other threads are started
             mpLocalMapper->gracefullStart();
             mpLoopClosing->gracefullStart();
+            mpMapClosing->gracefullStart();
         }
     }
     // If we are working, track points
@@ -298,6 +304,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             // Tell the other threads to stop
             mpLocalMapper->gracefullStop();
             mpLoopClosing->gracefullStop();
+            mpMapClosing->gracefullStop();
             // Set lost state
             mState=LOST_NOT_INITIALIZED;
         }
@@ -523,6 +530,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time)
     // Ensure that our other threads are started
     mpLocalMapper->gracefullStart();
     mpLoopClosing->gracefullStart();
+    mpMapClosing->gracefullStart();
 }
 
 

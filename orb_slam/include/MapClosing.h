@@ -34,6 +34,10 @@
 
 namespace ORB_SLAM
 {
+    
+class KeyFrame;
+class LocalMapping;
+class LoopClosing;
 
 class MapClosing
 {
@@ -53,6 +57,9 @@ public:
     void SetTracker(Tracking* pTracker);
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopCloser(LoopClosing* pLoopCloser);
+    
+    void gracefullStart();
+    void gracefullStop();    
   
 protected:
 
@@ -87,6 +94,8 @@ protected:
     double mScale_cw;
 
     long unsigned int mLastLoopKFid;
+    
+    bool gracefullStatus;
 
 };
 } //namespace ORB_SLAM
