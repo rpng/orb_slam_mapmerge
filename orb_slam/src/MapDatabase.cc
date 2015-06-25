@@ -26,6 +26,7 @@ MapDatabase::MapDatabase(ORBVocabulary* vocab) {
     // Init varibles
     this->vocab = vocab;
     this->currentMap = NULL;
+    this->currentMapID = -1;
     this->maps = std::vector<Map*>();
 }
 
@@ -43,13 +44,16 @@ void MapDatabase::addMap(Map* map) {
     //boost::mutex::scoped_lock lock(mapMutex);
     maps.push_back(map);
     currentMap = map;
+    currentMapID = maps.size();
 }
 
 void MapDatabase::eraseMap(Map* m){
     //boost::mutex::scoped_lock lock(mapMutex);
     // Check to see if it is the current one
-    if(m == currentMap)
+    if(m == currentMap) {
         currentMap = NULL;
+        currentMapID = -1;
+    }
     // Delete it
     for (std::size_t i = 0; i != maps.size(); ++i) {
         // If a match is found delete it, and remove it from the  vector
@@ -67,6 +71,7 @@ bool MapDatabase::setMap(Map* m){
     for (std::size_t i = 0; i != maps.size(); ++i) {
         if(maps[i] == m) {
             currentMap = maps[i];
+            currentMapID = i+1;
             return true;
         }
     }
@@ -76,6 +81,10 @@ bool MapDatabase::setMap(Map* m){
 Map* MapDatabase::getCurrent() {
     //boost::mutex::scoped_lock lock(mapMutex);
     return currentMap;
+}
+
+int MapDatabase::getCurrentID() {
+    return currentMapID;
 }
 
 std::vector<Map*> MapDatabase::getAll() {

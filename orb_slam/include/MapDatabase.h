@@ -61,6 +61,9 @@ public:
     // Gets the current map that we are tracking
     Map* getCurrent();
     
+    // Gets current map id
+    int getCurrentID();
+    
     // Gets the vocab object
     ORBVocabulary* getVocab();
 
@@ -71,12 +74,15 @@ public:
     // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);
 
     // Map Relocalisation Detection
-    // std::vector<Map*> DetectRelocalisationCandidates(Frame* F);
+    // std::vector<Map*> DetectRelocalisationCandidates(Frame* F);   
 
 protected:
 
     // Current map
     Map* currentMap;
+    
+    // The ID of the current map
+    int currentMapID;
     
     // Vocabulary
     ORBVocabulary* vocab;

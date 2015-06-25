@@ -344,7 +344,6 @@ void Tracking::FirstInitialization()
 
         mpInitializer =  new Initializer(mCurrentFrame,1.0,200);
 
-
         mState = INITIALIZING;
     }
 }

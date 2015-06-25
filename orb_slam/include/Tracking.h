@@ -63,9 +63,7 @@ public:
         NO_IMAGES_YET=0,
         NOT_INITIALIZED=1,
         INITIALIZING=2,
-        WORKING=3,
-        LOST_NOT_INITIALIZED=4,
-        LOST_INITIALIZING=5
+        WORKING=3
     };
 
     void SetLocalMapper(LocalMapping* pLocalMapper);
