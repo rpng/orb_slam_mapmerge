@@ -97,11 +97,11 @@ public:
 protected:
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
 
-    void FirstInitialization(bool first_time);
-    void Initialize(bool first_time);
-    void CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw, bool first_time);
+    void FirstInitialization();
+    void Initialize();
+    void CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw);
 
-    void Reset(bool first_time);
+    void Reset();
 
     bool TrackPreviousFrame();
     bool TrackWithMotionModel();
@@ -118,6 +118,8 @@ protected:
 
     bool NeedNewKeyFrame();
     void CreateNewKeyFrame();
+    
+    void ResetRelocalisationRequested();
 
 
     //Other Thread Pointers
