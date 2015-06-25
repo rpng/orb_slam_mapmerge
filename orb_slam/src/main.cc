@@ -116,6 +116,7 @@ int main(int argc, char **argv)
 
     LocalMapper.SetTracker(&Tracker);
     LocalMapper.SetLoopCloser(&LoopCloser);
+    LocalMapper.SetMapCloser(&MapCloser);
 
     LoopCloser.SetTracker(&Tracker);
     LoopCloser.SetLocalMapper(&LocalMapper);

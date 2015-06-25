@@ -18,11 +18,18 @@
 #ifndef MAPCLOSING_H
 #define MAPCLOSING_H
 
-#include "MapDatabase.h"
-
-#include "Tracking.h"
+#include "KeyFrame.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
+#include "MapDatabase.h"
+#include "Map.h"
+#include "ORBVocabulary.h"
+#include "Tracking.h"
+#include <boost/thread.hpp>
+
+#include "KeyFrameDatabase.h"
+
+#include <g2o/types/sim3/types_seven_dof_expmap.h>
 
 
 namespace ORB_SLAM
@@ -30,23 +37,56 @@ namespace ORB_SLAM
 
 class MapClosing
 {
+public:
+
+    typedef pair<set<KeyFrame*>,int> ConsistentGroup;    
+    typedef map<KeyFrame*,g2o::Sim3,std::less<KeyFrame*>,
+        Eigen::aligned_allocator<std::pair<const KeyFrame*, g2o::Sim3> > > KeyFrameAndPose;
     
 public:
     MapClosing(MapDatabase *mapDB);
     
     void Run();
     
+    void InsertKeyFrame(KeyFrame *pKF);
+    
     void SetTracker(Tracking* pTracker);
     void SetLocalMapper(LocalMapping* pLocalMapper);
     void SetLoopCloser(LoopClosing* pLoopCloser);
   
 protected:
-     MapDatabase* mapDB;
-     
-     Tracking* mpTracker;
+
+    bool CheckNewKeyFrames();
+
+    bool DetectLoop();
+
+    bool ComputeSim3();
+    
+    MapDatabase* mapDB;
+
+    Tracking* mpTracker;
     LocalMapping *mpLocalMapper;
     LoopClosing* mpLoopCloser;
 
+    std::list<KeyFrame*> mlpLoopKeyFrameQueue;
+    boost::mutex mMutexLoopQueue;
+    
+    // Loop detector parameters
+    float mnCovisibilityConsistencyTh;
+
+    // Loop detector variables
+    KeyFrame* mpCurrentKF;
+    KeyFrame* mpMatchedKF;
+    std::vector<ConsistentGroup> mvConsistentGroups;
+    std::vector<KeyFrame*> mvpEnoughConsistentCandidates;
+    std::vector<KeyFrame*> mvpCurrentConnectedKFs;
+    std::vector<MapPoint*> mvpCurrentMatchedPoints;
+    std::vector<MapPoint*> mvpLoopMapPoints;
+    cv::Mat mScw;
+    g2o::Sim3 mg2oScw;
+    double mScale_cw;
+
+    long unsigned int mLastLoopKFid;
 
 };
 } //namespace ORB_SLAM
