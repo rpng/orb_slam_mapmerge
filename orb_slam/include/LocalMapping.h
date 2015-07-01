@@ -25,7 +25,7 @@
 #include "MapDatabase.h"
 #include "Map.h"
 #include "LoopClosing.h"
-#include "MapClosing.h"
+#include "MapMerging.h"
 #include "Tracking.h"
 #include <boost/thread.hpp>
 #include "KeyFrameDatabase.h"
@@ -36,7 +36,7 @@ namespace ORB_SLAM
 
 class Tracking;
 class LoopClosing;
-class MapClosing;
+class MapMerging;
 class MapDatabase;
 class Map;
 
@@ -47,7 +47,7 @@ public:
 
     void SetLoopCloser(LoopClosing* pLoopCloser);
     
-    void SetMapCloser(MapClosing* pMapCloser);
+    void SetMapMerger(MapMerging* pMapMerger);
 
     void SetTracker(Tracking* pTracker);
 
@@ -97,7 +97,7 @@ protected:
     MapDatabase* mpMap;
 
     LoopClosing* mpLoopCloser;
-    MapClosing* mpMapCloser;
+    MapMerging* mpMapMerger;
     Tracking* mpTracker;
 
     std::list<KeyFrame*> mlNewKeyFrames;

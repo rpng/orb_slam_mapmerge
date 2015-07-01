@@ -38,9 +38,9 @@ void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
     mpLoopCloser = pLoopCloser;
 }
 
-void LocalMapping::SetMapCloser(MapClosing* pMapCloser)
+void LocalMapping::SetMapMerger(MapMerging* pMapMerger)
 {
-    mpMapCloser = pMapCloser;
+    mpMapMerger = pMapMerger;
 }
 
 void LocalMapping::SetTracker(Tracking *pTracker)
@@ -93,7 +93,7 @@ void LocalMapping::Run()
                 }
 
                 mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
-                mpMapCloser->InsertKeyFrame(mpCurrentKeyFrame);
+                mpMapMerger->InsertKeyFrame(mpCurrentKeyFrame);
 
             }
         }

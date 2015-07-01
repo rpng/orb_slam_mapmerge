@@ -32,7 +32,7 @@
 #include "MapPublisher.h"
 #include "LocalMapping.h"
 #include "LoopClosing.h"
-#include "MapClosing.h"
+#include "MapMerging.h"
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 
@@ -102,29 +102,29 @@ int main(int argc, char **argv)
     ORB_SLAM::Tracking Tracker(&FramePub, &MapPub, &WorldDB, strSettingsFile);
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB);
-    ORB_SLAM::MapClosing MapCloser(&WorldDB);
+    ORB_SLAM::MapMerging MapMerger(&WorldDB);
     
     // Start threads for all three
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
-    boost::thread mapClosingThread(&ORB_SLAM::MapClosing::Run, &MapCloser);
+    boost::thread mapMergingThread(&ORB_SLAM::MapMerging::Run, &MapMerger);
     
     //Set pointers between threads
     Tracker.SetLocalMapper(&LocalMapper);
     Tracker.SetLoopClosing(&LoopCloser);
-    Tracker.SetMapClosing(&MapCloser);
+    Tracker.SetMapMerger(&MapMerger);
 
     LocalMapper.SetTracker(&Tracker);
     LocalMapper.SetLoopCloser(&LoopCloser);
-    LocalMapper.SetMapCloser(&MapCloser);
+    LocalMapper.SetMapMerger(&MapMerger);
 
     LoopCloser.SetTracker(&Tracker);
     LoopCloser.SetLocalMapper(&LocalMapper);
     
-    MapCloser.SetTracker(&Tracker);
-    MapCloser.SetLocalMapper(&LocalMapper);
-    MapCloser.SetLoopCloser(&LoopCloser);
+    MapMerger.SetTracker(&Tracker);
+    MapMerger.SetLocalMapper(&LocalMapper);
+    MapMerger.SetLoopCloser(&LoopCloser);
 
     //This "main" thread will show the current processed frame and publish the map
     float fps = fsSettings["Camera.fps"];

@@ -152,8 +152,8 @@ void Tracking::SetLoopClosing(LoopClosing *pLoopClosing)
     mpLoopClosing=pLoopClosing;
 }
 
-void Tracking::SetMapClosing(MapClosing* pMapClosing) {
-    mpMapClosing=pMapClosing;
+void Tracking::SetMapMerger(MapMerging* pMapMerging) {
+    mpMapMerging=pMapMerging;
 }
 
 void Tracking::Run()
@@ -271,7 +271,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             // Tell the other threads to stop
             mpLocalMapper->gracefullStop();
             mpLoopClosing->gracefullStop();
-            mpMapClosing->gracefullStop();
+            mpMapMerging->gracefullStop();
             // Set lost state
             mState = NOT_INITIALIZED;
             // Force relocalisation
@@ -508,7 +508,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     // Ensure that our other threads are started
     mpLocalMapper->gracefullStart();
     mpLoopClosing->gracefullStart();
-    mpMapClosing->gracefullStart();
+    mpMapMerging->gracefullStart();
     
     // If we were trying to relocalize, we are on a new map, let the map closer handle it
     ResetRelocalisationRequested();
@@ -1042,7 +1042,7 @@ bool Tracking::Relocalisation()
             // Ensure that our other threads are started
             mpLocalMapper->gracefullStart();
             mpLoopClosing->gracefullStart();
-            mpMapClosing->gracefullStart();
+            mpMapMerging->gracefullStart();
             return true;
         }
         else {
