@@ -60,8 +60,18 @@ public:
     void Run();
 
     void InsertKeyFrame(KeyFrame *pKF);
-
+    
+    // Thread Synch
+    void RequestStop();
     void RequestReset();
+
+    void Stop();
+
+    void Release();
+
+    bool isStopped();
+
+    bool stopRequested();
     
     void gracefullStart();
     void gracefullStop();    
@@ -109,6 +119,10 @@ protected:
     double mScale_cw;
 
     long unsigned int mLastLoopKFid;
+    
+    bool mbStopped;
+    bool mbStopRequested;
+    boost::mutex mMutexStop;
     
     bool gracefullStatus;
 };

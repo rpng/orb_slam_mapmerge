@@ -162,7 +162,11 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
         s << " TRACKING ";
         int nKFs = mpMap->getCurrent()->KeyFramesInMap();
         int nMPs = mpMap->getCurrent()->MapPointsInMap();
-        s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << mpMap->getAll().size() << ",  CMapID: " << mpMap->getCurrentID();
+        int count = 0;
+        for(size_t i=0; i<mpMap->getAll().size(); i++)
+                if(!mpMap->getAll().at(i)->getErased())
+                    count++;
+        s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << count << ",  CMapID: " << mpMap->getCurrentID();
     }
     else if(nState==Tracking::SYSTEM_NOT_READY)
     {

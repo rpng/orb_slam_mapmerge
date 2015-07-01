@@ -63,6 +63,9 @@ public:
     void SetFlagAfterBA();
     bool isMapUpdated();
     void ResetUpdated();
+    
+    bool getErased();
+    void setErased(bool b);
 
     unsigned int GetMaxKFid();
     
@@ -84,6 +87,7 @@ protected:
 
     boost::mutex mMutexMap;
     bool mbMapUpdated;
+    bool isErased;
 };
 
 } //namespace ORB_SLAM

@@ -65,10 +65,12 @@ protected:
 
     bool CheckNewKeyFrames();
 
-    bool DetectLoop();
+    bool DetectLoop(Map* map);
 
-    bool ComputeSim3();
-    
+    bool ComputeSim3(Map* map);
+
+    void CorrectLoop(Map* map);
+
     MapDatabase* mapDB;
 
     Tracking* mpTracker;
@@ -90,6 +92,7 @@ protected:
     std::vector<MapPoint*> mvpCurrentMatchedPoints;
     std::vector<MapPoint*> mvpLoopMapPoints;
     cv::Mat mScw;
+    g2o::Sim3 mpMatchedgScm;
     g2o::Sim3 mg2oScw;
     double mScale_cw;
 

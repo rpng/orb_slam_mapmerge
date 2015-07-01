@@ -25,13 +25,12 @@ namespace ORB_SLAM
 MapDatabase::MapDatabase(ORBVocabulary* vocab) {
     // Init varibles
     this->vocab = vocab;
-    this->currentMap = NULL;
-    this->currentMapID = -1;
+    this->currentMapID = 0;
     this->maps = std::vector<Map*>();
 }
 
 Map* MapDatabase::getNewMap() {
-    //boost::mutex::scoped_lock lock(vocMutex);
+    boost::mutex::scoped_lock lock(vocMutex);
     // Create map and new db
     Map* temp = new Map;
     KeyFrameDatabase* db = new KeyFrameDatabase(*vocab);
@@ -41,19 +40,16 @@ Map* MapDatabase::getNewMap() {
 }
 
 void MapDatabase::addMap(Map* map) {
-    //boost::mutex::scoped_lock lock(mapMutex);
+    boost::mutex::scoped_lock lock(mapMutex);
     maps.push_back(map);
-    currentMap = map;
     currentMapID = maps.size();
 }
 
 void MapDatabase::eraseMap(Map* m){
-    //boost::mutex::scoped_lock lock(mapMutex);
+    boost::mutex::scoped_lock lock(mapMutex);
     // Check to see if it is the current one
-    if(m == currentMap) {
-        currentMap = NULL;
-        currentMapID = -1;
-    }
+    if(currentMapID > 0 && currentMapID < maps.size()+1 && m == maps.at(currentMapID-1))
+        currentMapID = 0;
     // Delete it
     for (std::size_t i = 0; i != maps.size(); ++i) {
         // If a match is found delete it, and remove it from the  vector
@@ -67,11 +63,11 @@ void MapDatabase::eraseMap(Map* m){
 }
 
 bool MapDatabase::setMap(Map* m){
-    //boost::mutex::scoped_lock lock(mapMutex);
+    boost::mutex::scoped_lock lock(mapMutex);
     for (std::size_t i = 0; i != maps.size(); ++i) {
         if(maps[i] == m) {
-            currentMap = maps[i];
             currentMapID = i+1;
+            ROS_INFO("Setting map to id of: %d", currentMapID);
             return true;
         }
     }
@@ -79,28 +75,37 @@ bool MapDatabase::setMap(Map* m){
 }
 
 Map* MapDatabase::getCurrent() {
-    //boost::mutex::scoped_lock lock(mapMutex);
-    return currentMap;
+    boost::mutex::scoped_lock lock(mapMutex);
+    if(currentMapID > 0 && currentMapID < maps.size()+1)
+        return maps.at(currentMapID-1);
+    else
+        return NULL;
 }
 
 int MapDatabase::getCurrentID() {
+    boost::mutex::scoped_lock lock(mapMutex);
     return currentMapID;
 }
 
 std::vector<Map*> MapDatabase::getAll() {
-    //boost::mutex::scoped_lock lock(mapMutex);
+    boost::mutex::scoped_lock lock(mapMutex);
     return maps;
 }
 
 ORBVocabulary* MapDatabase::getVocab() {
-    //boost::mutex::scoped_lock lock(vocMutex);
+    boost::mutex::scoped_lock lock(vocMutex);
     return vocab;
 }
 
-// std::vector<Map*> MapDatabase::DetectConnectionCandidates(KeyFrame* pKF, float minScore) {
-// }
-
-// std::vector<Map*> MapDatabase::DetectRelocalisationCandidates(Frame* F) {
-// }
+Map* MapDatabase::getOldest(Map* m1, Map* m2) {
+    boost::mutex::scoped_lock lock(mapMutex);
+    for (std::size_t i = 0; i != maps.size(); ++i) {
+        if(maps[i] == m1)
+            return m1;
+        if(maps[i] == m2)
+            return m2;
+    }
+    return NULL;
+}
 
 } //namespace ORB_SLAM

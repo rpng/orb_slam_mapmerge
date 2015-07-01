@@ -44,6 +44,9 @@ public:
     void SetWorldPos(const cv::Mat &Pos);
     cv::Mat GetWorldPos();
 
+    Map* getMap();
+    void setMap(Map* m);
+
     cv::Mat GetNormal();
     KeyFrame* GetReferenceKeyFrame();
 
@@ -128,6 +131,7 @@ protected:
      Map* mpMap;
 
      boost::mutex mMutexPos;
+     boost::mutex mMutexMap;
      boost::mutex mMutexFeatures;
 };
 

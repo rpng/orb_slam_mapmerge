@@ -63,22 +63,36 @@ void LoopClosing::Run()
         // Check that we have a map initialized, and we are not gracefully stopped
         if(mpMap->getCurrent() != NULL && gracefullStatus)
         {
+            ROS_INFO("Loop 1");
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
             {
+                ROS_INFO("Loop 2");
                 // Detect loop candidates and check covisibility consistency
                 if(DetectLoop())
                 {
+                    ROS_INFO("Loop 3");
                    // Compute similarity transformation [sR|t]
                    if(ComputeSim3())
                    {
+                       ROS_INFO("Loop 4");
                        // Perform loop fusion and pose graph optimization
                        CorrectLoop();
                    }
                 }
             }
         }
-
+        
+        // Safe area to stop
+        if(stopRequested())
+        {
+            Stop();
+            ros::Rate r2(1000);
+            while(isStopped() && ros::ok())
+            {
+                r2.sleep();
+            }
+        }
         ResetIfRequested();        
         // This sleep allows for the Local Mapping thread to gather more keyframes
         r.sleep();
@@ -591,6 +605,41 @@ void LoopClosing::RequestReset()
         }
         r.sleep();
     }
+}
+
+void LoopClosing::RequestStop()
+{
+    boost::mutex::scoped_lock lock(mMutexStop);
+    mbStopRequested = true;
+}
+
+void LoopClosing::Stop()
+{
+    boost::mutex::scoped_lock lock(mMutexStop);
+    mbStopped = true;
+}
+
+bool LoopClosing::isStopped()
+{
+    boost::mutex::scoped_lock lock(mMutexStop);
+    return mbStopped;
+}
+
+bool LoopClosing::stopRequested()
+{
+    boost::mutex::scoped_lock lock(mMutexStop);
+    return mbStopRequested;
+}
+
+void LoopClosing::Release()
+{
+    boost::mutex::scoped_lock lock(mMutexStop);
+    boost::mutex::scoped_lock lock2(mMutexLoopQueue);
+    mbStopped = false;
+    mbStopRequested = false;
+//    for(list<KeyFrame*>::iterator lit = mlpLoopKeyFrameQueue.begin(), lend=mlpLoopKeyFrameQueue.end(); lit!=lend; lit++)
+//        delete *lit;
+    mlpLoopKeyFrameQueue.clear();
 }
 
 void LoopClosing::gracefullStart()

@@ -58,14 +58,31 @@ void MapClosing::Run()
               // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
             {
-                // Detect loop candidates
-                if(DetectLoop())
+                // Query the database imposing the minimum score
+                for(size_t i=0; i<mapDB->getAll().size(); i++) {
+                    // Skipped erased maps
+                    if(mapDB->getAll().at(i)->getErased())
+                        continue;
+                    // Ignore keyframes from the current db, let the loop closer take care of that
+                    if(mapDB->getAll().at(i) != mapDB->getCurrent()) {
+                        // Detect loop candidates
+                        if(DetectLoop(mapDB->getAll().at(i)))
+                        {
+                            // Compute similarity transformation [sR|t]
+                           if(ComputeSim3(mapDB->getAll().at(i)))
+                           {
+                               ROS_INFO("Map Loop Detected!");
+                               CorrectLoop(mapDB->getAll().at(i));
+                               ROS_INFO("Done Correcting Map Loop!");
+                           }
+                        }
+                    }
+                }
+                
+                // Remove the keyframe we checked
                 {
-                    // Compute similarity transformation [sR|t]
-                   if(ComputeSim3())
-                   {
-                       ROS_INFO("Map Loop Detected!");
-                   }
+                    boost::mutex::scoped_lock lock(mMutexLoopQueue);
+                    mlpLoopKeyFrameQueue.pop_front();
                 }
             }
         }
@@ -97,12 +114,11 @@ void MapClosing::gracefullStop()
     gracefullStatus = false;
 }
 
-bool MapClosing::DetectLoop()
+bool MapClosing::DetectLoop(Map* map)
 {
     {
         boost::mutex::scoped_lock lock(mMutexLoopQueue);
         mpCurrentKF = mlpLoopKeyFrameQueue.front();
-        mlpLoopKeyFrameQueue.pop_front();
         // Avoid that a keyframe can be erased while it is being process by this thread
         mpCurrentKF->SetNotErase();
     }
@@ -133,16 +149,9 @@ bool MapClosing::DetectLoop()
         if(score<minScore)
             minScore = score;
     }
-
-    vector<KeyFrame*> vpCandidateKFs = vector<KeyFrame*>();
+    
     // Query the database imposing the minimum score
-    for(size_t i=0; i<mapDB->getAll().size(); i++) {
-        // Ignore keyframes from the current db, let the loop closer take care of that
-        if(mapDB->getAll().at(i) != mapDB->getCurrent()) {
-            vector<KeyFrame*> temp = mapDB->getAll().at(i)->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
-            vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
-        }
-    }
+    vector<KeyFrame*> vpCandidateKFs = map->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
 
     // If there are no loop candidates, just add new keyframe and return false
     if(vpCandidateKFs.empty())
@@ -221,10 +230,9 @@ bool MapClosing::DetectLoop()
     return false;
 }
 
-bool MapClosing::ComputeSim3()
+bool MapClosing::ComputeSim3(Map* map)
 {
     // For each consistent loop candidate we try to compute a Sim3
-
     const int nInitialCandidates = mvpEnoughConsistentCandidates.size();
 
     // We compute first ORB matches for each candidate
@@ -313,6 +321,7 @@ bool MapClosing::ComputeSim3()
                 cv::Mat R = pSolver->GetEstimatedRotation();
                 cv::Mat t = pSolver->GetEstimatedTranslation();
                 const float s = pSolver->GetEstimatedScale();
+                std::cout << "Scale: " << s << std::endl << std::endl;
                 matcher.SearchBySim3(mpCurrentKF,pKF,vpMapPointMatches,s,R,t,7.5);
 
 
@@ -326,6 +335,7 @@ bool MapClosing::ComputeSim3()
                     mpMatchedKF = pKF;
                     g2o::Sim3 gSmw(Converter::toMatrix3d(pKF->GetRotation()),Converter::toVector3d(pKF->GetTranslation()),1.0);
                     mg2oScw = gScm*gSmw;
+                    mpMatchedgScm = gScm;
                     mScw = Converter::toCvMat(mg2oScw);
 
                     mvpCurrentMatchedPoints = vpMapPointMatches;
@@ -391,6 +401,265 @@ bool MapClosing::ComputeSim3()
         return false;
     }
 
+}
+
+void MapClosing::CorrectLoop(Map* map)
+{
+    // Send a stop signal to Local Mapping
+    // Avoid new keyframes are inserted while correcting the loop
+    mpLocalMapper->RequestStop();
+    mpLoopCloser->RequestStop();
+
+    // Wait until Local Mapping has effectively stopped
+    ros::Rate r(1e4);
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped()))
+    {
+        r.sleep();
+    }
+    
+//    // Update matched map points and replace if duplicated
+//    for(size_t i=0; i<mvpCurrentMatchedPoints.size(); i++)
+//    {
+//        if(mvpCurrentMatchedPoints[i])
+//        {
+//            MapPoint* pLoopMP = mvpCurrentMatchedPoints[i];
+//            MapPoint* pCurMP = mpCurrentKF->GetMapPoint(i);
+//            if(pCurMP)
+//                pCurMP->Replace(pLoopMP);
+//            else
+//            {
+//                mpCurrentKF->AddMapPoint(pLoopMP,i);
+//                pLoopMP->AddObservation(mpCurrentKF,i);
+//                pLoopMP->ComputeDistinctiveDescriptors();
+//            }
+//        }
+//    }
+    
+    // Get the newest and oldest map ordering
+    Map* newest;
+    Map* oldest = mapDB->getOldest(mpMatchedKF->getMap(), mpCurrentKF->getMap());
+    
+    KeyFrameAndPose CorrectedSim3, NonCorrectedSim3;
+    cv::Mat Tw2a;
+    g2o::Sim3 g2oSab;
+    cv::Mat Tbw1;
+    
+    // Figure out what the newest map is based on the returned old one
+    if(oldest == NULL) {
+        ROS_ERROR("Invalid map closing, invalid maps");
+        return;
+    }
+    else if(oldest == mpMatchedKF->getMap()) {
+        ROS_INFO("Map - Newest is the current map");
+        // Update map varaibles
+        newest = mpCurrentKF->getMap();
+        // Create keyframe/pose for solving
+        //CorrectedSim3[mpCurrentKF]=mg2oScw;
+        // Frame to be converted
+        //cv::Mat Tiw2 = pKFi->GetPose();
+        Tw2a = mpCurrentKF->GetPoseInverse();
+        g2oSab = mpMatchedgScm;
+        Tbw1 = mpMatchedKF->GetPose();
+    }
+    else {
+        ROS_INFO("Map - Newest is the detected map");
+        // Update map varaibles
+        newest = mpMatchedKF->getMap();
+        // Create keyframe/pose for solving
+        //CorrectedSim3[mpMatchedKF]=mg2oScw;
+        // Frame to be converted
+        //cv::Mat Tiw2 = pKFi->GetPose();
+        Tw2a = mpMatchedKF->GetPoseInverse();
+        g2oSab = mpMatchedgScm.inverse();
+        Tbw1 = mpCurrentKF->GetPose();
+    }
+    
+    // Create sim3 of  the world 2 global to its connecting keyframe
+    cv::Mat Rw2a = Tw2a.rowRange(0,3).colRange(0,3);
+    cv::Mat tw2a = Tw2a.rowRange(0,3).col(3);
+    g2o::Sim3 g2oSw2a(Converter::toMatrix3d(Rw2a),Converter::toVector3d(tw2a),1.0);
+    // Create sim3 of the world 1 relative frame to its global
+    cv::Mat Rbw1 = Tbw1.rowRange(0,3).colRange(0,3);
+    cv::Mat tbw1 = Tbw1.rowRange(0,3).col(3);
+    g2o::Sim3 g2oSbw1(Converter::toMatrix3d(Rbw1),Converter::toVector3d(tbw1),1.0);
+
+    // Ensure current keyframe is updated
+    mpCurrentKF->UpdateConnections();
+    mpMatchedKF->UpdateConnections();
+    
+    // Print out the two poses
+    std::cout << "C1 = "<< std::endl << " "  << mpCurrentKF->GetPose() << std::endl << std::endl;
+    std::cout << "C2 = "<< std::endl << " "  << mpMatchedKF->GetPose() << std::endl << std::endl;
+    
+    // Loop through all keyframes
+    size_t num_keys = newest->GetAllKeyFrames().size();
+    for(size_t i=0; i<num_keys; i++)
+    {
+        // Get the keyframe
+        KeyFrame* pKFi = newest->GetAllKeyFrames().at(i);
+        cv::Mat Tiw2 = pKFi->GetPose();
+        // Ensure we have a valid key frame
+        if(!pKFi)
+            continue;
+        if(pKFi->isBad())
+            continue;
+        // Get the sim3 of pose of the current keyframe
+        cv::Mat Riw2 = Tiw2.rowRange(0,3).colRange(0,3);
+        cv::Mat tiw2 = Tiw2.rowRange(0,3).col(3);
+        g2o::Sim3 g2oSiw2(Converter::toMatrix3d(Riw2),Converter::toVector3d(tiw2),1.0);
+        // Converting from the keyframe's referance to the other global
+        g2o::Sim3 g2oSiw1 = g2oSiw2* g2oSw2a*g2oSab*g2oSbw1;
+        // Debug
+        std::cout << "Tiw2 = "<< std::endl << " "  << Tiw2 << std::endl;
+        std::cout << "Tiw1 = "<< std::endl << " "  << g2oSiw1 << std::endl << std::endl << std::endl;
+        // Update sim3 solvers with the new solution
+        CorrectedSim3[pKFi]=g2oSiw1;
+        NonCorrectedSim3[pKFi]=g2oSiw2;
+    }
+    
+    // Correct all MapPoints observed by current keyframe and neighbors, so that they align with the other side of the loop
+    for(KeyFrameAndPose::iterator mit=CorrectedSim3.begin(), mend=CorrectedSim3.end(); mit!=mend; mit++)
+    {
+        KeyFrame* pKFi = mit->first;
+        g2o::Sim3 g2oCorrectedSiw = mit->second;
+        
+        // Update refs
+        pKFi->setMap(oldest);
+        oldest->AddKeyFrame(pKFi);
+
+        vector<MapPoint*> vpMPsi = pKFi->GetMapPointMatches();
+        for(size_t iMP=0, endMPi = vpMPsi.size(); iMP<endMPi; iMP++)
+        {
+            MapPoint* pMPi = vpMPsi[iMP];
+            if(!pMPi)
+                continue;
+            if(pMPi->isBad())
+                continue;
+            if(pMPi->mnCorrectedByKF==mpCurrentKF->mnId)
+                continue;
+            // Update refs
+            pMPi->setMap(oldest);
+            oldest->AddMapPoint(pMPi);
+            // Project with non-corrected pose and project back with corrected pose
+            cv::Mat P3Dw = pMPi->GetWorldPos();
+            Eigen::Matrix<double,3,1> eigP3Dw = Converter::toVector3d(P3Dw);
+            // Going from w2 to w1 and then maping the 3x1 vector ontop of it 
+            // https://github.com/RainerKuemmerle/g2o/blob/master/g2o/types/sim3/sim3.h#L136-L138
+            g2o::Sim3 g2oSw1w2 = g2oSbw1.inverse()*g2oSab.inverse()* g2oSw2a.inverse();
+            Eigen::Matrix<double,3,1> eigCorrectedP3Dw = g2oSw1w2.map(eigP3Dw);
+            // Update the mappoint with the corrected cords
+            cv::Mat cvCorrectedP3Dw = Converter::toCvMat(eigCorrectedP3Dw);
+            pMPi->SetWorldPos(cvCorrectedP3Dw);
+            pMPi->mnCorrectedByKF = mpCurrentKF->mnId;
+            pMPi->mnCorrectedReference = pKFi->mnId;
+            pMPi->UpdateNormalAndDepth();
+        }
+
+        // Update keyframe pose with corrected Sim3. First transform Sim3 to SE3 (scale translation)
+        Eigen::Matrix3d eigR = g2oCorrectedSiw.rotation().toRotationMatrix();
+        Eigen::Vector3d eigt = g2oCorrectedSiw.translation();
+        double s = g2oCorrectedSiw.scale();
+        
+        std::cout << "Scale is: " << s << std::endl;
+
+        eigt *=(1./s); //[R t/s;0 1]
+
+        // Update key frame position
+        cv::Mat correctedTiw = Converter::toCvSE3(eigR,eigt);        
+        pKFi->SetPose(correctedTiw);
+
+        // Make sure connections are updated
+        pKFi->UpdateConnections();
+    } 
+    
+    // Loop through all mappoints
+//    size_t num_maps = newest->GetAllMapPoints().size();
+//    for(size_t i=0; i<num_maps; i++)
+//    {
+//        // Get the keyframe
+//        MapPoint* pKFi = newest->GetAllMapPoints().at(i);
+//
+//        cv::Mat pos = pKFi->GetWorldPos();
+//        cv::Mat one = cv::Mat::ones(1, 1, CV_32F);
+//        pos.push_back(one); 
+//        // Convert to global of old map
+//        cv::Mat Tw1w2 = Tbw1.inv()* Tab.inv()*Tw2a.inv()*pos;
+//        // Debug
+//        std::cout << "PO = "<< std::endl << " "  << pos << std::endl << std::endl;
+//        std::cout << "PE = "<< std::endl << " "  << Tw1w2 << std::endl << std::endl;
+//        // Update mappoint
+//        
+//        pKFi->SetWorldPos(Tw1w2.rowRange(0,3).col(0));
+//        pKFi->setMap(oldest);
+//        pKFi->UpdateNormalAndDepth();
+//    }
+    
+    // Start Loop Fusion
+    // Update matched map points and replace if duplicated
+    for(size_t i=0; i<mvpCurrentMatchedPoints.size(); i++)
+    {
+        if(mvpCurrentMatchedPoints[i])
+        {
+            MapPoint* pLoopMP = mvpCurrentMatchedPoints[i];
+            MapPoint* pCurMP = mpCurrentKF->GetMapPoint(i);
+            if(pCurMP)
+                pCurMP->Replace(pLoopMP);
+            else
+            {
+                mpCurrentKF->AddMapPoint(pLoopMP,i);
+                pLoopMP->AddObservation(mpCurrentKF,i);
+                pLoopMP->ComputeDistinctiveDescriptors();
+            }
+        }
+    }
+    
+    // Find loop connections of the new graph
+    mvpCurrentConnectedKFs.clear();
+    mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
+    mvpCurrentConnectedKFs.push_back(mpCurrentKF);
+    
+    // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
+    std::map<KeyFrame*, set<KeyFrame*> > LoopConnections;
+
+    for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
+    {
+        KeyFrame* pKFi = *vit;
+        vector<KeyFrame*> vpPreviousNeighbors = pKFi->GetVectorCovisibleKeyFrames();
+
+        // Update connections. Detect new links.
+        pKFi->UpdateConnections();
+        LoopConnections[pKFi]=pKFi->GetConnectedKeyFrames();
+        for(vector<KeyFrame*>::iterator vit_prev=vpPreviousNeighbors.begin(), vend_prev=vpPreviousNeighbors.end(); vit_prev!=vend_prev; vit_prev++)
+        {
+            LoopConnections[pKFi].erase(*vit_prev);
+        }
+        for(vector<KeyFrame*>::iterator vit2=mvpCurrentConnectedKFs.begin(), vend2=mvpCurrentConnectedKFs.end(); vit2!=vend2; vit2++)
+        {
+            LoopConnections[pKFi].erase(*vit2);
+        }
+    }
+
+
+    //Add edge
+    mpCurrentKF->AddLoopEdge(mpMatchedKF);
+    //mpMatchedKF->AddLoopEdge(mpCurrentKF);
+
+    // Optimize
+    //Optimizer::OptimizeEssentialGraph(oldest, mpMatchedKF, mpCurrentKF,  mg2oScw, CorrectedSim3, CorrectedSim3, LoopConnections);
+
+     // Update the current map
+    newest->setErased(true);
+    mapDB->setMap(oldest);
+
+    // Loop closed. Release Local Mapping.
+    mpLocalMapper->Release();
+    mpLoopCloser->Release();
+
+    // Relocalize on old map
+    mpTracker->ForceRelocalisation();
+    
+    //oldest->SetFlagAfterBA();
+    mLastLoopKFid = mpCurrentKF->mnId;
 }
 
 } //namespace ORB_SLAM

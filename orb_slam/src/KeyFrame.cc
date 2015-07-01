@@ -54,8 +54,14 @@ KeyFrame::KeyFrame(Frame &F, Map *pMap, KeyFrameDatabase *pKFDB):
 }
 
  Map* KeyFrame::getMap() {
+    boost::mutex::scoped_lock lock(mMutexMap);
      return mpMap;
  }
+ 
+void KeyFrame::setMap(Map* m) {
+    boost::mutex::scoped_lock lock(mMutexMap);
+    mpMap = m;
+}
 
 void KeyFrame::ComputeBoW()
 {

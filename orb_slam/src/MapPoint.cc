@@ -50,6 +50,16 @@ cv::Mat MapPoint::GetWorldPos()
     return mWorldPos.clone();
 }
 
+ Map* MapPoint::getMap() {
+     boost::mutex::scoped_lock lock(mMutexMap);
+     return mpMap;
+ }
+ 
+void MapPoint::setMap(Map* m) {
+    boost::mutex::scoped_lock lock(mMutexMap);
+    mpMap = m;
+}
+
 cv::Mat MapPoint::GetNormal()
 {
     boost::mutex::scoped_lock lock(mMutexPos);

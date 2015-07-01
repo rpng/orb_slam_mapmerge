@@ -69,20 +69,14 @@ public:
 
     // Gets all maps
     std::vector<Map*> getAll();
-
-    // Map Connection Detection
-    // std::vector<Map*> DetectConnectionCandidates(KeyFrame* pKF, float minScore);
-
-    // Map Relocalisation Detection
-    // std::vector<Map*> DetectRelocalisationCandidates(Frame* F);   
+    
+    // Returns the older of the two maps
+    Map* getOldest(Map* m1, Map* m2);
 
 protected:
 
-    // Current map
-    Map* currentMap;
-    
     // The ID of the current map
-    int currentMapID;
+    unsigned int currentMapID;
     
     // Vocabulary
     ORBVocabulary* vocab;

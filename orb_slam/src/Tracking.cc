@@ -873,8 +873,10 @@ bool Tracking::Relocalisation()
     vector<KeyFrame*> vpCandidateKFs;
     // Add all keyframe candidates we have
     for(size_t i=0; i<mpMap->getAll().size(); i++) {
-        vector<KeyFrame*> temp = mpMap->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
-        vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
+        if(!mpMap->getAll().at(i)->getErased()) {
+            vector<KeyFrame*> temp = mpMap->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
+            vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
+        }
     }
 
     // Do not continue if we have no candidates
@@ -1100,8 +1102,8 @@ void Tracking::Reset()
         localMap->clear();
     }
 
-    KeyFrame::nNextId = 0;
-    Frame::nNextId = 0;
+//    KeyFrame::nNextId = 0;
+//    Frame::nNextId = 0;
     mState = NOT_INITIALIZED;
 
     {

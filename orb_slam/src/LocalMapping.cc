@@ -57,43 +57,46 @@ void LocalMapping::Run()
         // Check that we have a map initialized, and we are not gracefully stopped
         if(mpMap->getCurrent() != NULL && gracefullStatus)
         {
+            ROS_INFO("Local 1");
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
-            {            
+            { 
+                ROS_INFO("Local 2");
                 // Tracking will see that Local Mapping is busy
                 SetAcceptKeyFrames(false);
-
+ROS_INFO("Local 3");
                 // BoW conversion and insertion in Map
                 ProcessNewKeyFrame();
-
+ROS_INFO("Local 4");
                 // Check recent MapPoints
                 MapPointCulling();
-
+ROS_INFO("Local 5");
                 // Triangulate new MapPoints
                 CreateNewMapPoints();
-
+ROS_INFO("Local 6");
                 // Find more matches in neighbor keyframes and fuse point duplications
                 SearchInNeighbors();
-
+ROS_INFO("Local 7");
                 mbAbortBA = false;
 
                 if(!CheckNewKeyFrames() && !stopRequested())
                 {
                     // Local BA
                     Optimizer::LocalBundleAdjustment(mpCurrentKeyFrame,&mbAbortBA);
-
+ROS_INFO("Local 8");
                     // Check redundant local Keyframes
                     KeyFrameCulling();
-
+ROS_INFO("Local 9");
                     mpMap->getCurrent()->SetFlagAfterBA();
-
+ROS_INFO("Local 10");
                     // Tracking will see Local Mapping idle
                     if(!CheckNewKeyFrames())
                         SetAcceptKeyFrames(true);
                 }
-
+ROS_INFO("Local 11");
                 mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
                 mpMapCloser->InsertKeyFrame(mpCurrentKeyFrame);
+                ROS_INFO("Local 12");
             }
         }
 
@@ -106,7 +109,6 @@ void LocalMapping::Run()
             {
                 r2.sleep();
             }
-
             SetAcceptKeyFrames(true);
         }
 
@@ -508,6 +510,7 @@ bool LocalMapping::stopRequested()
 void LocalMapping::Release()
 {
     boost::mutex::scoped_lock lock(mMutexStop);
+    boost::mutex::scoped_lock lock2(mMutexNewKFs);
     mbStopped = false;
     mbStopRequested = false;
     for(list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)

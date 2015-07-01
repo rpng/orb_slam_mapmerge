@@ -48,6 +48,7 @@ public:
     
     // Return map
     Map* getMap();
+    void setMap(Map* m);
     
     // Pose functions
     void SetPose(const cv::Mat &Rcw,const cv::Mat &tcw);
@@ -234,6 +235,7 @@ protected:
 
     Map* mpMap;
 
+    boost::mutex mMutexMap;
     boost::mutex mMutexPose;
     boost::mutex mMutexConnections;
     boost::mutex mMutexFeatures;

@@ -27,16 +27,13 @@ Map::Map()
 {
     mbMapUpdated= false;
     mnMaxKFid = 0;
+    isErased = false;
 }
 
 Map::~Map()
 {
-    for(set<MapPoint*>::iterator sit=mspMapPoints.begin(), send=mspMapPoints.end(); sit!=send; sit++)
-        delete *sit;
-        
-    for(set<KeyFrame*>::iterator sit=mspKeyFrames.begin(), send=mspKeyFrames.end(); sit!=send; sit++)
-        delete *sit;
-        
+    boost::mutex::scoped_lock lock(mMutexMap);
+    boost::mutex::scoped_lock lock2(mMutexKeyFrameDB);
     if(!mvpReferenceMapPoints.empty())
          for(vector<MapPoint*>::iterator sit=mvpReferenceMapPoints.begin(), send=mvpReferenceMapPoints.end(); sit!=send; sit++)
             delete *sit;
@@ -156,7 +153,18 @@ void Map::SetKeyFrameDB(KeyFrameDatabase* mpKeyFrameDB) {
 }
 
 KeyFrameDatabase* Map::GetKeyFrameDatabase() {
+    boost::mutex::scoped_lock lock(mMutexKeyFrameDB);
     return mpKeyFrameDB;
+}
+
+bool Map::getErased() {
+    boost::mutex::scoped_lock lock(mMutexMap);
+    return isErased;
+}
+
+void Map::setErased(bool b) {
+    boost::mutex::scoped_lock lock(mMutexMap);
+    isErased = b;
 }
 
 } //namespace ORB_SLAM
