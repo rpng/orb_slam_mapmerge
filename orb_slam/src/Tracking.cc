@@ -280,8 +280,10 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         
         // Reset if the camera get lost soon after initialization
         if(mState==NOT_INITIALIZED)
-            if(mpMap->getCurrent()->KeyFramesInMap()<=5)
+            if(mpMap->getCurrent()->KeyFramesInMap()<=5) {
+                ROS_INFO("ORB-SLAM - Erasing map, to few keyframes.");
                 mpMap->getCurrent()->setErased(true);
+            }
 
         // Update motion model
         if(mbMotionModel)
