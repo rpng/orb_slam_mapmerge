@@ -321,7 +321,7 @@ bool MapClosing::ComputeSim3(Map* map)
                 cv::Mat R = pSolver->GetEstimatedRotation();
                 cv::Mat t = pSolver->GetEstimatedTranslation();
                 const float s = pSolver->GetEstimatedScale();
-                std::cout << "Scale: " << s << std::endl << std::endl;
+
                 matcher.SearchBySim3(mpCurrentKF,pKF,vpMapPointMatches,s,R,t,7.5);
 
 
@@ -417,24 +417,6 @@ void MapClosing::CorrectLoop(Map* map)
         r.sleep();
     }
     
-//    // Update matched map points and replace if duplicated
-//    for(size_t i=0; i<mvpCurrentMatchedPoints.size(); i++)
-//    {
-//        if(mvpCurrentMatchedPoints[i])
-//        {
-//            MapPoint* pLoopMP = mvpCurrentMatchedPoints[i];
-//            MapPoint* pCurMP = mpCurrentKF->GetMapPoint(i);
-//            if(pCurMP)
-//                pCurMP->Replace(pLoopMP);
-//            else
-//            {
-//                mpCurrentKF->AddMapPoint(pLoopMP,i);
-//                pLoopMP->AddObservation(mpCurrentKF,i);
-//                pLoopMP->ComputeDistinctiveDescriptors();
-//            }
-//        }
-//    }
-    
     // Get the newest and oldest map ordering
     Map* newest;
     Map* oldest = mapDB->getOldest(mpMatchedKF->getMap(), mpCurrentKF->getMap());
@@ -453,10 +435,7 @@ void MapClosing::CorrectLoop(Map* map)
         ROS_INFO("Map - Newest is the current map");
         // Update map varaibles
         newest = mpCurrentKF->getMap();
-        // Create keyframe/pose for solving
-        //CorrectedSim3[mpCurrentKF]=mg2oScw;
-        // Frame to be converted
-        //cv::Mat Tiw2 = pKFi->GetPose();
+        // Different poses we have to convert to and from
         Tw2a = mpCurrentKF->GetPoseInverse();
         g2oSab = mpMatchedgScm;
         Tbw1 = mpMatchedKF->GetPose();
@@ -465,10 +444,7 @@ void MapClosing::CorrectLoop(Map* map)
         ROS_INFO("Map - Newest is the detected map");
         // Update map varaibles
         newest = mpMatchedKF->getMap();
-        // Create keyframe/pose for solving
-        //CorrectedSim3[mpMatchedKF]=mg2oScw;
-        // Frame to be converted
-        //cv::Mat Tiw2 = pKFi->GetPose();
+        // Different poses we have to convert to and from
         Tw2a = mpMatchedKF->GetPoseInverse();
         g2oSab = mpMatchedgScm.inverse();
         Tbw1 = mpCurrentKF->GetPose();
@@ -488,8 +464,8 @@ void MapClosing::CorrectLoop(Map* map)
     mpMatchedKF->UpdateConnections();
     
     // Print out the two poses
-    std::cout << "C1 = "<< std::endl << " "  << mpCurrentKF->GetPose() << std::endl << std::endl;
-    std::cout << "C2 = "<< std::endl << " "  << mpMatchedKF->GetPose() << std::endl << std::endl;
+    //std::cout << "C1 = "<< std::endl << " "  << mpCurrentKF->GetPose() << std::endl << std::endl;
+    //std::cout << "C2 = "<< std::endl << " "  << mpMatchedKF->GetPose() << std::endl << std::endl;
     
     // Loop through all keyframes
     size_t num_keys = newest->GetAllKeyFrames().size();
@@ -510,8 +486,8 @@ void MapClosing::CorrectLoop(Map* map)
         // Converting from the keyframe's referance to the other global
         g2o::Sim3 g2oSiw1 = g2oSiw2* g2oSw2a*g2oSab*g2oSbw1;
         // Debug
-        std::cout << "Tiw2 = "<< std::endl << " "  << Tiw2 << std::endl;
-        std::cout << "Tiw1 = "<< std::endl << " "  << g2oSiw1 << std::endl << std::endl << std::endl;
+        //std::cout << "Tiw2 = "<< std::endl << " "  << Tiw2 << std::endl;
+        //std::cout << "Tiw1 = "<< std::endl << " "  << g2oSiw1 << std::endl << std::endl << std::endl;
         // Update sim3 solvers with the new solution
         CorrectedSim3[pKFi]=g2oSiw1;
         NonCorrectedSim3[pKFi]=g2oSiw2;
@@ -526,6 +502,7 @@ void MapClosing::CorrectLoop(Map* map)
         // Update refs
         pKFi->setMap(oldest);
         oldest->AddKeyFrame(pKFi);
+        oldest->GetKeyFrameDatabase()->add(pKFi);
 
         vector<MapPoint*> vpMPsi = pKFi->GetMapPointMatches();
         for(size_t iMP=0, endMPi = vpMPsi.size(); iMP<endMPi; iMP++)
@@ -560,7 +537,8 @@ void MapClosing::CorrectLoop(Map* map)
         Eigen::Vector3d eigt = g2oCorrectedSiw.translation();
         double s = g2oCorrectedSiw.scale();
         
-        std::cout << "Scale is: " << s << std::endl;
+        // Debug
+        //std::cout << "Scale is: " << s << std::endl;
 
         eigt *=(1./s); //[R t/s;0 1]
 
@@ -571,28 +549,6 @@ void MapClosing::CorrectLoop(Map* map)
         // Make sure connections are updated
         pKFi->UpdateConnections();
     } 
-    
-    // Loop through all mappoints
-//    size_t num_maps = newest->GetAllMapPoints().size();
-//    for(size_t i=0; i<num_maps; i++)
-//    {
-//        // Get the keyframe
-//        MapPoint* pKFi = newest->GetAllMapPoints().at(i);
-//
-//        cv::Mat pos = pKFi->GetWorldPos();
-//        cv::Mat one = cv::Mat::ones(1, 1, CV_32F);
-//        pos.push_back(one); 
-//        // Convert to global of old map
-//        cv::Mat Tw1w2 = Tbw1.inv()* Tab.inv()*Tw2a.inv()*pos;
-//        // Debug
-//        std::cout << "PO = "<< std::endl << " "  << pos << std::endl << std::endl;
-//        std::cout << "PE = "<< std::endl << " "  << Tw1w2 << std::endl << std::endl;
-//        // Update mappoint
-//        
-//        pKFi->SetWorldPos(Tw1w2.rowRange(0,3).col(0));
-//        pKFi->setMap(oldest);
-//        pKFi->UpdateNormalAndDepth();
-//    }
     
     // Start Loop Fusion
     // Update matched map points and replace if duplicated
@@ -613,40 +569,23 @@ void MapClosing::CorrectLoop(Map* map)
         }
     }
     
-    // Find loop connections of the new graph
-    mvpCurrentConnectedKFs.clear();
-    mvpCurrentConnectedKFs = mpCurrentKF->GetVectorCovisibleKeyFrames();
-    mvpCurrentConnectedKFs.push_back(mpCurrentKF);
-    
-    // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
-    std::map<KeyFrame*, set<KeyFrame*> > LoopConnections;
-
-    for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
-    {
-        KeyFrame* pKFi = *vit;
-        vector<KeyFrame*> vpPreviousNeighbors = pKFi->GetVectorCovisibleKeyFrames();
-
-        // Update connections. Detect new links.
-        pKFi->UpdateConnections();
-        LoopConnections[pKFi]=pKFi->GetConnectedKeyFrames();
-        for(vector<KeyFrame*>::iterator vit_prev=vpPreviousNeighbors.begin(), vend_prev=vpPreviousNeighbors.end(); vit_prev!=vend_prev; vit_prev++)
-        {
-            LoopConnections[pKFi].erase(*vit_prev);
-        }
-        for(vector<KeyFrame*>::iterator vit2=mvpCurrentConnectedKFs.begin(), vend2=mvpCurrentConnectedKFs.end(); vit2!=vend2; vit2++)
-        {
-            LoopConnections[pKFi].erase(*vit2);
-        }
-    }
-
+    // Project MapPoints observed in the neighborhood of the loop keyframe
+    // into the current keyframe and neighbors using corrected poses.
+    // Fuse duplications.
+    // TODO: Understand why this is done for loop closing
+    SearchAndFuse(CorrectedSim3);
 
     //Add edge
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
-    //mpMatchedKF->AddLoopEdge(mpCurrentKF);
+    mpMatchedKF->AddLoopEdge(mpCurrentKF);
 
     // Optimize
+    // TODO: Check to see if this is doing it right
     //Optimizer::OptimizeEssentialGraph(oldest, mpMatchedKF, mpCurrentKF,  mg2oScw, CorrectedSim3, CorrectedSim3, LoopConnections);
 
+    // We just optimize the essential
+    oldest->SetFlagAfterBA();
+    
      // Update the current map
     newest->setErased(true);
     mapDB->setMap(oldest);
@@ -657,9 +596,23 @@ void MapClosing::CorrectLoop(Map* map)
 
     // Relocalize on old map
     mpTracker->ForceRelocalisation();
-    
-    //oldest->SetFlagAfterBA();
+
     mLastLoopKFid = mpCurrentKF->mnId;
+}
+
+void MapClosing::SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap)
+{
+    ORBmatcher matcher(0.8);
+
+    for(KeyFrameAndPose::iterator mit=CorrectedPosesMap.begin(), mend=CorrectedPosesMap.end(); mit!=mend;mit++)
+    {
+        KeyFrame* pKF = mit->first;
+
+        g2o::Sim3 g2oScw = mit->second;
+        cv::Mat cvScw = Converter::toCvMat(g2oScw);
+
+        matcher.Fuse(pKF,cvScw,mvpLoopMapPoints,4);
+    }
 }
 
 } //namespace ORB_SLAM

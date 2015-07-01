@@ -70,6 +70,8 @@ protected:
     bool ComputeSim3(Map* map);
 
     void CorrectLoop(Map* map);
+    
+    void SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap);
 
     MapDatabase* mapDB;
 

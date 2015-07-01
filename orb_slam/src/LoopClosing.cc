@@ -63,19 +63,15 @@ void LoopClosing::Run()
         // Check that we have a map initialized, and we are not gracefully stopped
         if(mpMap->getCurrent() != NULL && gracefullStatus)
         {
-            ROS_INFO("Loop 1");
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
             {
-                ROS_INFO("Loop 2");
                 // Detect loop candidates and check covisibility consistency
                 if(DetectLoop())
                 {
-                    ROS_INFO("Loop 3");
                    // Compute similarity transformation [sR|t]
                    if(ComputeSim3())
                    {
-                       ROS_INFO("Loop 4");
                        // Perform loop fusion and pose graph optimization
                        CorrectLoop();
                    }

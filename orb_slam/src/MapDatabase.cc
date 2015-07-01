@@ -67,7 +67,6 @@ bool MapDatabase::setMap(Map* m){
     for (std::size_t i = 0; i != maps.size(); ++i) {
         if(maps[i] == m) {
             currentMapID = i+1;
-            ROS_INFO("Setting map to id of: %d", currentMapID);
             return true;
         }
     }
