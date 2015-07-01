@@ -121,7 +121,7 @@ cv::Mat FramePublisher::DrawFrame()
                 pt2.y=vCurrentKeys[i].pt.y+r;
                 if(!mvbOutliers[i])
                 {
-                    //cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
                     cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }

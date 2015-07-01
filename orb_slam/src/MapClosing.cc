@@ -71,9 +71,9 @@ void MapClosing::Run()
                             // Compute similarity transformation [sR|t]
                            if(ComputeSim3(mapDB->getAll().at(i)))
                            {
-                               ROS_INFO("Map Loop Detected!");
+                               ROS_INFO("ORB-SLAM - Map Merge Detected!");
                                CorrectLoop(mapDB->getAll().at(i));
-                               ROS_INFO("Done Correcting Map Loop!");
+                               ROS_INFO("ORB-SLAM - Done Mearging Maps!");
                            }
                         }
                     }
@@ -428,11 +428,10 @@ void MapClosing::CorrectLoop(Map* map)
     
     // Figure out what the newest map is based on the returned old one
     if(oldest == NULL) {
-        ROS_ERROR("Invalid map closing, invalid maps");
+        ROS_ERROR("ORB-SLAM - Invalid maps trying to merge");
         return;
     }
     else if(oldest == mpMatchedKF->getMap()) {
-        ROS_INFO("Map - Newest is the current map");
         // Update map varaibles
         newest = mpCurrentKF->getMap();
         // Different poses we have to convert to and from
@@ -441,7 +440,6 @@ void MapClosing::CorrectLoop(Map* map)
         Tbw1 = mpMatchedKF->GetPose();
     }
     else {
-        ROS_INFO("Map - Newest is the detected map");
         // Update map varaibles
         newest = mpMatchedKF->getMap();
         // Different poses we have to convert to and from

@@ -559,7 +559,7 @@ void LoopClosing::CorrectLoop()
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
-    ROS_INFO("ORB-SLAM Loop Closed!");
+    ROS_INFO("ORB-SLAM - Loop Closed!");
 
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();

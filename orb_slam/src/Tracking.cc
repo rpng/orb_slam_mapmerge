@@ -277,6 +277,11 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             // Force relocalisation
             ForceRelocalisation();
         }
+        
+        // Reset if the camera get lost soon after initialization
+        if(mState==NOT_INITIALIZED)
+            if(mpMap->getCurrent()->KeyFramesInMap()<=5)
+                mpMap->getCurrent()->setErased(true);
 
         // Update motion model
         if(mbMotionModel)
@@ -297,7 +302,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
      }
      // Else unknown state
      else {
-         ROS_ERROR("Unknown tracking state, this should not happen.");
+         ROS_ERROR("ORB-SLAM - Unknown tracking state, this should not happen.");
      }
      
     // If we need to relocalize, try to do so
@@ -445,7 +450,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     pKFcur->UpdateConnections();
 
     // Bundle Adjustment
-    ROS_INFO("New Map created with %d points",localMap->MapPointsInMap());
+    ROS_INFO("ORB-SLAM - New Map created with %d points", localMap->MapPointsInMap());
 
     Optimizer::GlobalBundleAdjustemnt(localMap,20);
 
@@ -455,7 +460,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
 
     if(medianDepth<0 || pKFcur->TrackedMapPoints()<100)
     {
-        ROS_INFO("Wrong initialization, reseting...");
+        ROS_INFO("ORB-SLAM - Wrong initialization, reseting...");
         Reset();
         return;
     }
@@ -1029,7 +1034,7 @@ bool Tracking::Relocalisation()
         mnLastRelocFrameId = mCurrentFrame.mnId;
         // If we have a match id, get its map, and update the mapDB's current map
         if(match != -1 && mpMap->setMap(vpCandidateKFs[match]->getMap())) {
-            ROS_INFO("Successful relocalisation to old map.");
+            ROS_INFO("ORB-SLAM - Successful relocalisation to old map.");
             // We are relocalized, reset it
             ResetRelocalisationRequested();
             // Update working state
@@ -1041,7 +1046,7 @@ bool Tracking::Relocalisation()
             return true;
         }
         else {
-            ROS_ERROR("Unable to find the map linked to relocalized keyframe.");
+            ROS_ERROR("ORB-SLAM - Unable to find the map linked to relocalized keyframe.");
             return false;
         }
         
