@@ -281,7 +281,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // Reset if the camera get lost soon after initialization
         if(mState==NOT_INITIALIZED)
             if(mpMap->getCurrent()->KeyFramesInMap()<=5) {
-                ROS_INFO("ORB-SLAM - Erasing map, to few keyframes.");
+                ROS_INFO("ORB-SLAM - Erasing map, too few keyframes.");
                 mpMap->getCurrent()->setErased(true);
             }
 
@@ -308,7 +308,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
      }
      
     // If we need to relocalize, try to do so
-    if(RelocalisationRequested()) {
+    if(RelocalisationRequested() && mCurrentFrame.mnId%2 == 0) {
         Relocalisation();
     }
     
@@ -1084,16 +1084,16 @@ void Tracking::Reset()
     }
 
     // Wait until publishers are stopped
-    ros::Rate r(500);
-    while(1)
-    {
-        {
-            boost::mutex::scoped_lock lock(mMutexReset);
-            if(mbPublisherStopped)
-                break;
-        }
-        r.sleep();
-    }
+//    ros::Rate r(500);
+//    while(1)
+//    {
+//        {
+//            boost::mutex::scoped_lock lock(mMutexReset);
+//            if(mbPublisherStopped)
+//                break;
+//        }
+//        r.sleep();
+//    }
     
     // Reset Local Mapping
     mpLocalMapper->RequestReset();
