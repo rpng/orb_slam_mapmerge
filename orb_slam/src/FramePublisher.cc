@@ -47,6 +47,11 @@ void FramePublisher::SetMapDB(MapDatabase *pMap)
     mpMap = pMap;
 }
 
+void FramePublisher::SetImageBuffer(ImageBuffer* pbuffer)
+{
+    buffer = pbuffer;
+}
+
 void FramePublisher::Refresh()
 {
     if(mbUpdated)
@@ -151,12 +156,17 @@ void FramePublisher::PublishFrame()
 void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
     stringstream s;
+    stringstream s2;
     if(nState==Tracking::NO_IMAGES_YET)
         s << "WAITING FOR IMAGES. (Topic: /camera/image_raw)";
-    else if(nState==Tracking::NOT_INITIALIZED)
+    else if(nState==Tracking::NOT_INITIALIZED) {
         s << " NOT INITIALIZED ";
-    else if(nState==Tracking::INITIALIZING)
+        s2 << "Buffer: " << buffer->GetBufferCount();
+    }
+    else if(nState==Tracking::INITIALIZING) {
         s << " TRYING TO INITIALIZE ";
+        s2 << " Buffer: " << buffer->GetBufferCount();
+    }
     else if(nState==Tracking::WORKING)
     {
         s << " TRACKING ";
@@ -167,6 +177,7 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
                 if(!mpMap->getAll().at(i)->getErased())
                     count++;
         s << " - KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked << ", Maps: " << count << ",  CMapID: " << mpMap->getCurrentID();
+        s2 << " Buffer: " << buffer->GetBufferCount();
     }
     else if(nState==Tracking::SYSTEM_NOT_READY)
     {
@@ -177,10 +188,12 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
     int fontscale=2;
     cv::Size textSize = cv::getTextSize(s.str(),cv::FONT_HERSHEY_PLAIN,fontscale,1,&baseline);
 
-    imText = cv::Mat(im.rows+textSize.height+10,im.cols,im.type());
+    imText = cv::Mat(im.rows+3*textSize.height+10,im.cols,im.type());
     im.copyTo(imText.rowRange(0,im.rows).colRange(0,im.cols));
-    imText.rowRange(im.rows,imText.rows) = cv::Mat::zeros(textSize.height+10,im.cols,im.type());
+    imText.rowRange(im.rows,imText.rows) = cv::Mat::zeros(3*textSize.height+10,im.cols,im.type());
+    // Display text
     cv::putText(imText,s.str(),cv::Point(5,imText.rows-5),cv::FONT_HERSHEY_PLAIN,fontscale,cv::Scalar(255,255,255),1,8);
+    cv::putText(imText,s2.str(),cv::Point(5,imText.rows-2*textSize.height),cv::FONT_HERSHEY_PLAIN,fontscale,cv::Scalar(255,255,255),1,8);
 
 }
 

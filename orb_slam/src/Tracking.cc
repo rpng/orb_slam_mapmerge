@@ -43,8 +43,8 @@ namespace ORB_SLAM
 {
 
 
-Tracking::Tracking(FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
-    mState(NO_IMAGES_YET), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap), 
+Tracking::Tracking(ImageBuffer* pbuffer, FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
+    mState(NO_IMAGES_YET), buffer(pbuffer), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap), 
     localMap(NULL), mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
 {
     // Load camera parameters from settings file
@@ -158,29 +158,25 @@ void Tracking::SetMapMerger(MapMerging* pMapMerging) {
 
 void Tracking::Run()
 {
-    ros::NodeHandle nodeHandler;
-    ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &Tracking::GrabImage, this);
-
-    ros::spin();
+    while(ros::ok())
+    {
+        // Check for new image
+        if(buffer->CheckNewImages()) {
+            // Proccess the new image
+            HandleImage();
+        }
+    }
 }
 
-void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
+void Tracking::HandleImage()
 {
-
+    // Get the new frame
+    cv_bridge::CvImageConstPtr cv_ptr = buffer->GrabImage();
+    
+    // Our matrix we will be converting to
     cv::Mat im;
 
-    // Copy the ros image message to cv::Mat. Convert to grayscale if it is a color image.
-    cv_bridge::CvImageConstPtr cv_ptr;
-    try
-    {
-        cv_ptr = cv_bridge::toCvShare(msg);
-    }
-    catch (cv_bridge::Exception& e)
-    {
-        ROS_ERROR("cv_bridge exception: %s", e.what());
-        return;
-    }
-
+    // Ensure we have a valid image
     ROS_ASSERT(cv_ptr->image.channels()==3 || cv_ptr->image.channels()==1);
 
     if(cv_ptr->image.channels()==3)

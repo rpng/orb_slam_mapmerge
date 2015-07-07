@@ -26,6 +26,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 
+#include "ImageBuffer.h"
 #include "FramePublisher.h"
 #include "MapDatabase.h"
 #include "Map.h"
@@ -39,7 +40,7 @@
 #include "Initializer.h"
 #include "MapPublisher.h"
 
-#include<tf/transform_broadcaster.h>
+#include <tf/transform_broadcaster.h>
 
 
 namespace ORB_SLAM
@@ -56,7 +57,7 @@ class Tracking
 {  
 
 public:
-    Tracking(FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, string strSettingPath);
+    Tracking(ImageBuffer* pbuffer, FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, string strSettingPath);
 
     enum eTrackingState{
         SYSTEM_NOT_READY=-1,
@@ -93,7 +94,7 @@ public:
 
 
 protected:
-    void GrabImage(const sensor_msgs::ImageConstPtr& msg);
+    void HandleImage();
 
     void FirstInitialization();
     void Initialize();
@@ -119,7 +120,9 @@ protected:
     
     void ResetRelocalisationRequested();
 
-
+    // Image buffer
+    ImageBuffer* buffer;
+    
     //Other Thread Pointers
     LocalMapping* mpLocalMapper;
     LoopClosing* mpLoopClosing;

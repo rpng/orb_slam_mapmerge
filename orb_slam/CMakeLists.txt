@@ -69,6 +69,7 @@ add_executable(${PROJECT_NAME}
   src/KeyFrameDatabase.cc
   src/Sim3Solver.cc
   src/Initializer.cc
+  src/ImageBuffer.cc
 )
 
 # What libraries we need

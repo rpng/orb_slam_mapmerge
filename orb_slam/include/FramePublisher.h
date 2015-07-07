@@ -25,6 +25,7 @@
 #include "MapPoint.h"
 #include "Map.h"
 #include "MapDatabase.h"
+#include "ImageBuffer.h"
 
 #include "ros/ros.h"
 
@@ -48,7 +49,8 @@ public:
 
     void Refresh();
 
-    void SetMapDB(MapDatabase *pMap);
+    void SetMapDB(MapDatabase* pMap);
+    void SetImageBuffer(ImageBuffer* pbuffer);
 
 protected:
 
@@ -57,6 +59,8 @@ protected:
     void PublishFrame();
 
     void DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText);
+    
+    ImageBuffer* buffer;
 
     cv::Mat mIm;
     vector<cv::KeyPoint> mvCurrentKeys;

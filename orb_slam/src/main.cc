@@ -92,19 +92,24 @@ int main(int argc, char **argv)
 
     //Create the map database
     ORB_SLAM::MapDatabase WorldDB(&Vocabulary);
+    
+    // Image buffer
+    ORB_SLAM::ImageBuffer Buffer;
 
     FramePub.SetMapDB(&WorldDB);
+    FramePub.SetImageBuffer(&Buffer);
 
     //Create Map Publisher for Rviz
-    ORB_SLAM::MapPublisher MapPub(&WorldDB);
+    ORB_SLAM::MapPublisher MapPub(&WorldDB);    
 
     //Initialize the Tracking Thread, Local Mapping Thread and Loop Closing Thread
-    ORB_SLAM::Tracking Tracker(&FramePub, &MapPub, &WorldDB, strSettingsFile);
+    ORB_SLAM::Tracking Tracker(&Buffer, &FramePub, &MapPub, &WorldDB, strSettingsFile);
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB);
     ORB_SLAM::MapMerging MapMerger(&WorldDB);
     
     // Start threads for all three
+    boost::thread imageThread(&ORB_SLAM::ImageBuffer::Run,&Buffer);
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
