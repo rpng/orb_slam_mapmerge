@@ -308,7 +308,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
      }
      
     // If we need to relocalize, try to do so
-    if(RelocalisationRequested() && mCurrentFrame.mnId%2 == 0) {
+    if(RelocalisationRequested()) {
         Relocalisation();
     }
     
