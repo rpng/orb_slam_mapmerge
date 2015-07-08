@@ -50,25 +50,26 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall  -O3 -march=native")
 # Files that we need to build
 add_executable(${PROJECT_NAME}
   src/main.cc
-  src/Tracking.cc
-  src/LocalMapping.cc
-  src/LoopClosing.cc
-  src/ORBextractor.cc
-  src/ORBmatcher.cc
-  src/FramePublisher.cc
-  src/Converter.cc
-  src/MapPoint.cc
-  src/KeyFrame.cc
-  src/Map.cc
-  src/MapMerging.cc
-  src/MapDatabase.cc
-  src/MapPublisher.cc
-  src/Optimizer.cc
-  src/PnPsolver.cc
-  src/Frame.cc
-  src/KeyFrameDatabase.cc
-  src/Sim3Solver.cc
-  src/Initializer.cc
+  src/types/Frame.cc
+  src/types/KeyFrame.cc
+  src/types/KeyFrameDatabase.cc
+  src/types/Map.cc
+  src/types/MapDatabase.cc
+  src/types/MapPoint.cc
+  src/threads/LocalMapping.cc
+  src/threads/LoopClosing.cc
+  src/threads/MapMerging.cc
+  src/threads/OrbThread.cc
+  src/threads/Tracking.cc
+  src/publishers/MapPublisher.cc
+  src/publishers/FramePublisher.cc
+  src/util/Converter.cc
+  src/util/Initializer.cc
+  src/util/Optimizer.cc
+  src/util/ORBextractor.cc
+  src/util/ORBmatcher.cc
+  src/util/Sim3Solver.cc
+  src/util/PnPsolver.cc
 )
 
 # What libraries we need

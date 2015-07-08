@@ -15,9 +15,9 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "MapDatabase.h"
+#include "types/MapDatabase.h"
 
-#include "ros/ros.h"
+#include <ros/ros.h>
 
 namespace ORB_SLAM
 {

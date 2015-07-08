@@ -23,8 +23,8 @@
 #define PNPSOLVER_H
 
 #include <opencv/cv.h>
-#include "MapPoint.h"
-#include "Frame.h"
+#include "types/MapPoint.h"
+#include "types/Frame.h"
 
 namespace ORB_SLAM
 {

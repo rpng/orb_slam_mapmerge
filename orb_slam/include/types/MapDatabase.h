@@ -22,11 +22,11 @@
 #include <list>
 #include <set>
 
-#include "MapPoint.h"
-#include "Map.h"
-#include "KeyFrame.h"
-#include "Frame.h"
-#include "ORBVocabulary.h"
+#include "types/MapPoint.h"
+#include "types/Map.h"
+#include "types/KeyFrame.h"
+#include "types/Frame.h"
+#include "types/ORBVocabulary.h"
 
 #include <boost/thread.hpp>
 

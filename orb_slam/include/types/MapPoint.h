@@ -21,10 +21,10 @@
 #ifndef MAPPOINT_H
 #define MAPPOINT_H
 
-#include <opencv2/core/core.hpp>
-#include "KeyFrame.h"
-#include "Map.h"
+#include "types/KeyFrame.h"
+#include "types/Map.h"
 
+#include <opencv2/core/core.hpp>
 #include <boost/thread.hpp>
 
 

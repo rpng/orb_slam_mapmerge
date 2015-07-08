@@ -21,7 +21,7 @@
 
 #include <iostream>
 
-#include "PnPsolver.h"
+#include "util/PnPsolver.h"
 
 #include <vector>
 #include <cmath>

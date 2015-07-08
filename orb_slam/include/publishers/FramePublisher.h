@@ -21,12 +21,13 @@
 #ifndef FRAMEPUBLISHER_H
 #define FRAMEPUBLISHER_H
 
-#include "Tracking.h"
-#include "MapPoint.h"
-#include "Map.h"
-#include "MapDatabase.h"
+#include "types/MapPoint.h"
+#include "types/Map.h"
+#include "types/MapDatabase.h"
 
-#include "ros/ros.h"
+#include "threads/Tracking.h"
+
+#include <ros/ros.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>

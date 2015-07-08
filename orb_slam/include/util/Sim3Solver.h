@@ -24,9 +24,7 @@
 #include <opencv2/opencv.hpp>
 #include <vector>
 
-#include "KeyFrame.h"
-
-
+#include "types/KeyFrame.h"
 
 namespace ORB_SLAM
 {

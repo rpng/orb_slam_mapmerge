@@ -25,10 +25,10 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "MapDatabase.h"
-#include "Map.h"
-#include "MapPoint.h"
-#include "KeyFrame.h"
+#include "types/Map.h"
+#include "types/MapDatabase.h"
+#include "types/MapPoint.h"
+#include "types/KeyFrame.h"
 
 namespace ORB_SLAM
 {

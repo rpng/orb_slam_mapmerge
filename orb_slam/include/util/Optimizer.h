@@ -21,11 +21,12 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
 
-#include "Map.h"
-#include "MapPoint.h"
-#include "KeyFrame.h"
-#include "LoopClosing.h"
-#include "Frame.h"
+#include "types/Map.h"
+#include "types/MapPoint.h"
+#include "types/KeyFrame.h"
+#include "types/Frame.h"
+
+#include "threads/LoopClosing.h"
 
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
 

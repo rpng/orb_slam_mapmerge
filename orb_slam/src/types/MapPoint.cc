@@ -18,9 +18,9 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "MapPoint.h"
-#include "ORBmatcher.h"
-#include "ros/ros.h"
+#include "types/MapPoint.h"
+#include "util/ORBmatcher.h"
+#include <ros/ros.h>
 
 namespace ORB_SLAM
 {

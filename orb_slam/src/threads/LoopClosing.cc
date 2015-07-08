@@ -18,40 +18,25 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LoopClosing.h"
+#include "threads/LoopClosing.h"
 
-#include "Sim3Solver.h"
-
-#include "Converter.h"
-
-#include "Optimizer.h"
-
-#include "ORBmatcher.h"
+#include "util/Sim3Solver.h"
+#include "util/Converter.h"
+#include "util/Optimizer.h"
+#include "util/ORBmatcher.h"
 
 #include <ros/ros.h>
-
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
 
 namespace ORB_SLAM
 {
 
 LoopClosing::LoopClosing(MapDatabase *pMap):
-    mbResetRequested(false), mpMap(pMap), mLastLoopKFid(0), gracefullStatus(false)
+    OrbThread(pMap), mLastLoopKFid(0)
 {
     mnCovisibilityConsistencyTh = 3;
     mpMatchedKF = NULL;
 }
-
-void LoopClosing::SetTracker(Tracking *pTracker)
-{
-    mpTracker=pTracker;
-}
-
-void LoopClosing::SetLocalMapper(LocalMapping *pLocalMapper)
-{
-    mpLocalMapper=pLocalMapper;
-}
-
 
 void LoopClosing::Run()
 {
@@ -61,7 +46,7 @@ void LoopClosing::Run()
     while(ros::ok())
     {
         // Check that we have a map initialized, and we are not gracefully stopped
-        if(mpMap->getCurrent() != NULL && gracefullStatus)
+        if(mapDB->getCurrent() != NULL)
         {
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -121,7 +106,7 @@ bool LoopClosing::DetectLoop()
     //If the map contains less than 10 KF or less than 10KF have passed from last loop detection
     if(mpCurrentKF->mnId<mLastLoopKFid+10)
     {
-        mpMap->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
+        mapDB->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
         mpCurrentKF->SetErase();
         return false;
     }
@@ -139,20 +124,20 @@ bool LoopClosing::DetectLoop()
             continue;
         DBoW2::BowVector BowVec = pKF->GetBowVector();
 
-        float score = mpMap->getVocab()->score(CurrentBowVec, BowVec);
+        float score = mapDB->getVocab()->score(CurrentBowVec, BowVec);
 
         if(score<minScore)
             minScore = score;
     }
 
     // Query the database imposing the minimum score
-    vector<KeyFrame*> vpCandidateKFs = mpMap->getCurrent()->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
+    vector<KeyFrame*> vpCandidateKFs = mapDB->getCurrent()->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
 
 
     // If there are no loop candidates, just add new keyframe and return false
     if(vpCandidateKFs.empty())
     {
-        mpMap->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
+        mapDB->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
         mvConsistentGroups.clear();
         mpCurrentKF->SetErase();
         return false;
@@ -221,7 +206,7 @@ bool LoopClosing::DetectLoop()
 
 
     // Add Current Keyframe to database
-    mpMap->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
+    mapDB->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
 
     if(mvpEnoughConsistentCandidates.empty())
     {
@@ -553,7 +538,7 @@ void LoopClosing::CorrectLoop()
 
     mpTracker->ForceRelocalisation();
 
-    Optimizer::OptimizeEssentialGraph(mpMap->getCurrent(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
+    Optimizer::OptimizeEssentialGraph(mapDB->getCurrent(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
 
     //Add edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
@@ -564,7 +549,7 @@ void LoopClosing::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
 
-    mpMap->getCurrent()->SetFlagAfterBA();
+    mapDB->getCurrent()->SetFlagAfterBA();
 
     mLastLoopKFid = mpCurrentKF->mnId;
 }
@@ -584,49 +569,6 @@ void LoopClosing::SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap)
     }
 }
 
-
-void LoopClosing::RequestReset()
-{
-    {
-        boost::mutex::scoped_lock lock(mMutexReset);
-        mbResetRequested = true;
-    }
-    ros::Rate r(500);
-    while(ros::ok())
-    {
-        {
-        boost::mutex::scoped_lock lock2(mMutexReset);
-        if(!mbResetRequested)
-            break;
-        }
-        r.sleep();
-    }
-}
-
-void LoopClosing::RequestStop()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    mbStopRequested = true;
-}
-
-void LoopClosing::Stop()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    mbStopped = true;
-}
-
-bool LoopClosing::isStopped()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    return mbStopped;
-}
-
-bool LoopClosing::stopRequested()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    return mbStopRequested;
-}
-
 void LoopClosing::Release()
 {
     boost::mutex::scoped_lock lock(mMutexStop);
@@ -636,16 +578,6 @@ void LoopClosing::Release()
 //    for(list<KeyFrame*>::iterator lit = mlpLoopKeyFrameQueue.begin(), lend=mlpLoopKeyFrameQueue.end(); lit!=lend; lit++)
 //        delete *lit;
     mlpLoopKeyFrameQueue.clear();
-}
-
-void LoopClosing::gracefullStart()
-{
-    gracefullStatus = true;
-}
-
-void LoopClosing::gracefullStop()
-{
-    gracefullStatus = false;
 }
 
 void LoopClosing::ResetIfRequested()

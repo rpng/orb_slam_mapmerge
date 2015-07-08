@@ -18,7 +18,7 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Map.h"
+#include "types/Map.h"
 
 namespace ORB_SLAM
 {

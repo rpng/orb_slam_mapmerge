@@ -15,12 +15,12 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "MapMerging.h"
+#include "threads/MapMerging.h"
 
-#include "Sim3Solver.h"
-#include "Converter.h"
-#include "Optimizer.h"
-#include "ORBmatcher.h"
+#include "util/Sim3Solver.h"
+#include "util/Converter.h"
+#include "util/Optimizer.h"
+#include "util/ORBmatcher.h"
 
 #include <ros/ros.h>
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
@@ -28,22 +28,7 @@
 namespace ORB_SLAM
 {
 
-MapMerging::MapMerging(MapDatabase *pMap) {
-    mapDB = pMap;
-    gracefullStatus = false;
-}
-
-void MapMerging::SetTracker(Tracking* pTracker) {
-    mpTracker=pTracker;
-}
-
-void MapMerging::SetLocalMapper(LocalMapping* pLocalMapper) {
-    mpLocalMapper=pLocalMapper;
-}
-
- void MapMerging::SetLoopCloser(LoopClosing* pLoopCloser) {
-     mpLoopCloser=pLoopCloser;
- }
+MapMerging::MapMerging(MapDatabase *pMap): OrbThread(pMap) {}
 
 void MapMerging::Run()
 {
@@ -53,7 +38,7 @@ void MapMerging::Run()
     while(ros::ok())
     {
         // Check that we have a map initialized
-        if(mapDB->getCurrent() != NULL && gracefullStatus)
+        if(mapDB->getCurrent() != NULL)
         {
               // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -86,7 +71,18 @@ void MapMerging::Run()
                 }
             }
         }
-
+        
+        // Safe area to stop
+        if(stopRequested())
+        {
+            Stop();
+            ros::Rate r2(1000);
+            while(isStopped() && ros::ok())
+            {
+                r2.sleep();
+            }
+        }
+        // Sleep
         r.sleep();
     }
 }
@@ -102,16 +98,6 @@ bool MapMerging::CheckNewKeyFrames()
 {
     boost::mutex::scoped_lock lock(mMutexLoopQueue);
     return(!mlpLoopKeyFrameQueue.empty());
-}
-
-void MapMerging::gracefullStart()
-{
-    gracefullStatus = true;
-}
-
-void MapMerging::gracefullStop()
-{
-    gracefullStatus = false;
 }
 
 bool MapMerging::DetectLoop(Map* map)

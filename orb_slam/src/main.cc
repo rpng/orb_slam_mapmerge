@@ -26,19 +26,22 @@
 
 #include <opencv2/core/core.hpp>
 
-#include "Tracking.h"
-#include "FramePublisher.h"
-#include "Map.h"
-#include "MapPublisher.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "MapMerging.h"
-#include "KeyFrameDatabase.h"
-#include "ORBVocabulary.h"
+#include "types/Map.h"
+#include "types/KeyFrameDatabase.h"
+#include "types/ORBVocabulary.h"
+
+#include "threads/Tracking.h"
+#include "threads/MapMerging.h"
+#include "threads/LocalMapping.h"
+#include "threads/LoopClosing.h"
+
+#include "publishers/FramePublisher.h"
+#include "publishers/MapPublisher.h"
+
+#include "util/Converter.h"
 
 #include <sstream>
 
-#include "Converter.h"
 
 
 using namespace std;
@@ -56,7 +59,7 @@ int main(int argc, char **argv)
 
     if(argc != 3)
     {
-        cerr << endl << "Usage: rosrun ORB_SLAM ORB_SLAM path_to_vocabulary path_to_settings (absolute or relative to package directory)" << endl;
+        ROS_ERROR("Usage: rosrun ORB_SLAM ORB_SLAM path_to_vocabulary path_to_settings (absolute or relative to package directory)");
         ros::shutdown();
         return 1;
     }
@@ -81,18 +84,16 @@ int main(int argc, char **argv)
     cv::FileStorage fsVoc(strVocFile.c_str(), cv::FileStorage::READ);
     if(!fsVoc.isOpened())
     {
-        cerr << endl << "Wrong path to vocabulary. Path must be absolute or relative to ORB_SLAM package directory." << endl;
+        ROS_ERROR("Wrong path to vocabulary. Path must be absolute or relative to ORB_SLAM package directory.");
         ros::shutdown();
         return 1;
     }
     ORB_SLAM::ORBVocabulary Vocabulary;
     Vocabulary.load(fsVoc);
-
-      cout << "Vocabulary loaded!" << endl << endl;
+    ROS_INFO("Vocabulary loaded!");
 
     //Create the map database
     ORB_SLAM::MapDatabase WorldDB(&Vocabulary);
-
     FramePub.SetMapDB(&WorldDB);
 
     //Create Map Publisher for Rviz
@@ -111,20 +112,10 @@ int main(int argc, char **argv)
     boost::thread mapMergingThread(&ORB_SLAM::MapMerging::Run, &MapMerger);
     
     //Set pointers between threads
-    Tracker.SetLocalMapper(&LocalMapper);
-    Tracker.SetLoopClosing(&LoopCloser);
-    Tracker.SetMapMerger(&MapMerger);
-
-    LocalMapper.SetTracker(&Tracker);
-    LocalMapper.SetLoopCloser(&LoopCloser);
-    LocalMapper.SetMapMerger(&MapMerger);
-
-    LoopCloser.SetTracker(&Tracker);
-    LoopCloser.SetLocalMapper(&LocalMapper);
-    
-    MapMerger.SetTracker(&Tracker);
-    MapMerger.SetLocalMapper(&LocalMapper);
-    MapMerger.SetLoopCloser(&LoopCloser);
+    Tracker.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
+    LocalMapper.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
+    LoopCloser.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
+    MapMerger.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
 
     //This "main" thread will show the current processed frame and publish the map
     float fps = fsSettings["Camera.fps"];

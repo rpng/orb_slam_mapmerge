@@ -21,15 +21,17 @@
 #ifndef LOCALMAPPING_H
 #define LOCALMAPPING_H
 
-#include "KeyFrame.h"
-#include "MapDatabase.h"
-#include "Map.h"
-#include "LoopClosing.h"
-#include "MapMerging.h"
-#include "Tracking.h"
-#include <boost/thread.hpp>
-#include "KeyFrameDatabase.h"
+#include "types/KeyFrame.h"
+#include "types/Map.h"
+#include "types/MapDatabase.h"
+#include "types/KeyFrameDatabase.h"
 
+#include "threads/OrbThread.h"
+#include "threads/LoopClosing.h"
+#include "threads/MapMerging.h"
+#include "threads/Tracking.h"
+
+#include <boost/thread.hpp>
 
 namespace ORB_SLAM
 {
@@ -40,7 +42,7 @@ class MapMerging;
 class MapDatabase;
 class Map;
 
-class LocalMapping
+class LocalMapping: public OrbThread
 {
 public:
     LocalMapping(MapDatabase* pMap);
@@ -55,25 +57,14 @@ public:
 
     void InsertKeyFrame(KeyFrame* pKF);
 
-    // Thread Synch
-    void RequestStop();
-    void RequestReset();
-
-    void Stop();
-
-    void Release();
-
-    bool isStopped();
-
-    bool stopRequested();
-
     bool AcceptKeyFrames();
     void SetAcceptKeyFrames(bool flag);
+    
+    // Override super, clear local vars
+    void Release();
+    void ResetIfRequested();
 
     void InterruptBA();
-    
-    void gracefullStart();
-    void gracefullStop();    
 
 protected:
 
@@ -90,16 +81,6 @@ protected:
 
     cv::Mat SkewSymmetricMatrix(const cv::Mat &v);
 
-    void ResetIfRequested();
-    bool mbResetRequested;
-    boost::mutex mMutexReset;
-
-    MapDatabase* mpMap;
-
-    LoopClosing* mpLoopCloser;
-    MapMerging* mpMapMerger;
-    Tracking* mpTracker;
-
     std::list<KeyFrame*> mlNewKeyFrames;
 
     KeyFrame* mpCurrentKeyFrame;
@@ -110,14 +91,9 @@ protected:
 
     bool mbAbortBA;
 
-    bool mbStopped;
-    bool mbStopRequested;
-    boost::mutex mMutexStop;
-
     bool mbAcceptKeyFrames;
     boost::mutex mMutexAccept;
-    
-    bool gracefullStatus;
+
 };
 
 } //namespace ORB_SLAM

@@ -22,7 +22,7 @@
 #define INITIALIZER_H
 
 #include <opencv2/opencv.hpp>
-#include "Frame.h"
+#include "types/Frame.h"
 
 
 namespace ORB_SLAM

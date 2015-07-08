@@ -21,12 +21,14 @@
 #ifndef FRAME_H
 #define FRAME_H
 
-#include "MapPoint.h"
+#include "types/MapPoint.h"
+#include "types/ORBVocabulary.h"
+#include "types/KeyFrame.h"
+
+#include "util/ORBextractor.h"
+
 #include "dbow2/BowVector.h"
 #include "dbow2/FeatureVector.h"
-#include "ORBVocabulary.h"
-#include "KeyFrame.h"
-#include "ORBextractor.h"
 
 #include <opencv2/opencv.hpp>
 

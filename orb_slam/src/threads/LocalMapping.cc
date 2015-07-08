@@ -18,10 +18,11 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "ORBmatcher.h"
-#include "Optimizer.h"
+#include "threads/LocalMapping.h"
+#include "threads/LoopClosing.h"
+
+#include "util/ORBmatcher.h"
+#include "util/Optimizer.h"
 
 #include <ros/ros.h>
 
@@ -29,23 +30,8 @@ namespace ORB_SLAM
 {
 
 LocalMapping::LocalMapping(MapDatabase *pMap):
-    mbResetRequested(false), mpMap(pMap),  mbAbortBA(false), mbStopped(false), mbStopRequested(false), mbAcceptKeyFrames(true), gracefullStatus(false)
+    OrbThread(pMap), mbAbortBA(false), mbAcceptKeyFrames(true)
 {
-}
-
-void LocalMapping::SetLoopCloser(LoopClosing* pLoopCloser)
-{
-    mpLoopCloser = pLoopCloser;
-}
-
-void LocalMapping::SetMapMerger(MapMerging* pMapMerger)
-{
-    mpMapMerger = pMapMerger;
-}
-
-void LocalMapping::SetTracker(Tracking *pTracker)
-{
-    mpTracker=pTracker;
 }
 
 void LocalMapping::Run()
@@ -55,7 +41,7 @@ void LocalMapping::Run()
     while(ros::ok())
     {
         // Check that we have a map initialized, and we are not gracefully stopped
-        if(mpMap->getCurrent() != NULL && gracefullStatus)
+        if(mapDB->getCurrent() != NULL)
         {
             // Check if there are keyframes in the queue
             if(CheckNewKeyFrames())
@@ -85,7 +71,7 @@ void LocalMapping::Run()
                     // Check redundant local Keyframes
                     KeyFrameCulling();
 
-                    mpMap->getCurrent()->SetFlagAfterBA();
+                    mapDB->getCurrent()->SetFlagAfterBA();
 
                     // Tracking will see Local Mapping idle
                     if(!CheckNewKeyFrames())
@@ -180,7 +166,7 @@ void LocalMapping::ProcessNewKeyFrame()
     mpCurrentKeyFrame->UpdateConnections();
 
     // Insert Keyframe in Map
-    mpMap->getCurrent()->AddKeyFrame(mpCurrentKeyFrame);
+    mapDB->getCurrent()->AddKeyFrame(mpCurrentKeyFrame);
 }
 
 void LocalMapping::MapPointCulling()
@@ -363,7 +349,7 @@ void LocalMapping::CreateNewMapPoints()
                 continue;
 
             // Triangulation is successful
-            MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mpMap->getCurrent());
+            MapPoint* pMP = new MapPoint(x3D,mpCurrentKeyFrame,mapDB->getCurrent());
 
             pMP->AddObservation(pKF2,idx2);
             pMP->AddObservation(mpCurrentKeyFrame,idx1);
@@ -375,7 +361,7 @@ void LocalMapping::CreateNewMapPoints()
 
             pMP->UpdateNormalAndDepth();
 
-            mpMap->getCurrent()->AddMapPoint(pMP);
+            mapDB->getCurrent()->AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
         }
     }
@@ -479,32 +465,6 @@ cv::Mat LocalMapping::ComputeF12(KeyFrame *&pKF1, KeyFrame *&pKF2)
     return K1.t().inv()*t12x*R12*K2.inv();
 }
 
-void LocalMapping::RequestStop()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    mbStopRequested = true;
-    boost::mutex::scoped_lock lock2(mMutexNewKFs);
-    mbAbortBA = true;
-}
-
-void LocalMapping::Stop()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    mbStopped = true;
-}
-
-bool LocalMapping::isStopped()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    return mbStopped;
-}
-
-bool LocalMapping::stopRequested()
-{
-    boost::mutex::scoped_lock lock(mMutexStop);
-    return mbStopRequested;
-}
-
 void LocalMapping::Release()
 {
     boost::mutex::scoped_lock lock(mMutexStop);
@@ -533,15 +493,6 @@ void LocalMapping::InterruptBA()
     mbAbortBA = true;
 }
 
-void LocalMapping::gracefullStart()
-{
-    gracefullStatus = true;
-}
-
-void LocalMapping::gracefullStop()
-{
-    gracefullStatus = false;
-}
 
 void LocalMapping::KeyFrameCulling()
 {
@@ -604,25 +555,6 @@ cv::Mat LocalMapping::SkewSymmetricMatrix(const cv::Mat &v)
     return (cv::Mat_<float>(3,3) <<             0, -v.at<float>(2), v.at<float>(1),
                                   v.at<float>(2),               0,-v.at<float>(0),
                                  -v.at<float>(1),  v.at<float>(0),              0);
-}
-
-void LocalMapping::RequestReset()
-{
-    {
-        boost::mutex::scoped_lock lock(mMutexReset);
-        mbResetRequested = true;
-    }
-
-    ros::Rate r(500);
-    while(ros::ok())
-    {
-        {
-        boost::mutex::scoped_lock lock2(mMutexReset);
-        if(!mbResetRequested)
-            break;
-        }
-        r.sleep();
-    }
 }
 
 void LocalMapping::ResetIfRequested()

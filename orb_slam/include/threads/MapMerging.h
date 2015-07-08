@@ -18,28 +18,29 @@
 #ifndef MAPCLOSING_H
 #define MAPCLOSING_H
 
-#include "KeyFrame.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "MapDatabase.h"
-#include "Map.h"
-#include "ORBVocabulary.h"
-#include "Tracking.h"
+#include "types/KeyFrame.h"
+#include "types/Map.h"
+#include "types/MapDatabase.h"
+#include "types/ORBVocabulary.h"
+#include "types/KeyFrameDatabase.h"
+
+#include "threads/OrbThread.h"
+#include "threads/LocalMapping.h"
+#include "threads/LoopClosing.h"
+#include "threads/Tracking.h"
+
 #include <boost/thread.hpp>
-
-#include "KeyFrameDatabase.h"
-
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
-
 
 namespace ORB_SLAM
 {
-    
+
 class KeyFrame;
+class Tracking;
 class LocalMapping;
 class LoopClosing;
 
-class MapMerging
+class MapMerging: public OrbThread
 {
 public:
 
@@ -53,13 +54,6 @@ public:
     void Run();
     
     void InsertKeyFrame(KeyFrame *pKF);
-    
-    void SetTracker(Tracking* pTracker);
-    void SetLocalMapper(LocalMapping* pLocalMapper);
-    void SetLoopCloser(LoopClosing* pLoopCloser);
-    
-    void gracefullStart();
-    void gracefullStop();    
   
 protected:
 
@@ -72,12 +66,6 @@ protected:
     void CorrectLoop(Map* map);
     
     void SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap);
-
-    MapDatabase* mapDB;
-
-    Tracking* mpTracker;
-    LocalMapping *mpLocalMapper;
-    LoopClosing* mpLoopCloser;
 
     std::list<KeyFrame*> mlpLoopKeyFrameQueue;
     boost::mutex mMutexLoopQueue;
@@ -99,8 +87,6 @@ protected:
     double mScale_cw;
 
     long unsigned int mLastLoopKFid;
-    
-    bool gracefullStatus;
 
 };
 } //namespace ORB_SLAM

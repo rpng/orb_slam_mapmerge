@@ -21,25 +21,28 @@
 #ifndef TRACKING_H
 #define TRACKING_H
 
+#include "publishers/FramePublisher.h"
+#include "publishers/MapPublisher.h"
+
+#include "types/Map.h"
+#include "types/MapDatabase.h"
+#include "types/Frame.h"
+#include "types/ORBVocabulary.h"
+#include "types/KeyFrameDatabase.h"
+
+#include "threads/OrbThread.h"
+#include "threads/LocalMapping.h"
+#include "threads/LoopClosing.h"
+#include "threads/MapMerging.h"
+
+#include "util/ORBextractor.h"
+#include "util/Initializer.h"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
-
-#include "FramePublisher.h"
-#include "MapDatabase.h"
-#include "Map.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "MapMerging.h"
-#include "Frame.h"
-#include "ORBVocabulary.h"
-#include "KeyFrameDatabase.h"
-#include "ORBextractor.h"
-#include "Initializer.h"
-#include "MapPublisher.h"
-
-#include<tf/transform_broadcaster.h>
+#include <tf/transform_broadcaster.h>
 
 
 namespace ORB_SLAM
@@ -52,7 +55,7 @@ class LocalMapping;
 class LoopClosing;
 class MapMerging;
 
-class Tracking
+class Tracking: public OrbThread
 {  
 
 public:
@@ -65,10 +68,6 @@ public:
         INITIALIZING=2,
         WORKING=3
     };
-
-    void SetLocalMapper(LocalMapping* pLocalMapper);
-    void SetLoopClosing(LoopClosing* pLoopClosing);
-    void SetMapMerger(MapMerging* pMapMerging);
 
     // This is the main function of the Tracking Thread
     void Run();
@@ -119,12 +118,6 @@ protected:
     
     void ResetRelocalisationRequested();
 
-
-    //Other Thread Pointers
-    LocalMapping* mpLocalMapper;
-    LoopClosing* mpLoopClosing;
-    MapMerging* mpMapMerging;
-
     //ORB
     ORBextractor* mpORBextractor;
     ORBextractor* mpIniORBextractor;
@@ -145,8 +138,7 @@ protected:
     FramePublisher* mpFramePublisher;
     MapPublisher* mpMapPublisher;
 
-    //Map
-    MapDatabase* mpMap;
+    //Local Map for init
     Map* localMap;
 
     //Calibration matrix

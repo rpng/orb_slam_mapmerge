@@ -22,12 +22,13 @@
 #ifndef KEYFRAME_H
 #define KEYFRAME_H
 
-#include "MapPoint.h"
+#include "types/MapPoint.h"
+#include "types/ORBVocabulary.h"
+#include "types/Frame.h"
+#include "types/KeyFrameDatabase.h"
+
 #include "dbow2/BowVector.h"
 #include "dbow2/FeatureVector.h"
-#include "ORBVocabulary.h"
-#include "Frame.h"
-#include "KeyFrameDatabase.h"
 
 #include <boost/thread.hpp>
 

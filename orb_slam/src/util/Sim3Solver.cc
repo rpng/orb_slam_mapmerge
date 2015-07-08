@@ -18,15 +18,15 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Sim3Solver.h"
+#include "types/KeyFrame.h"
+
+#include "util/Sim3Solver.h"
+#include "util/ORBmatcher.h"
 
 #include <vector>
 #include <cmath>
 #include <opencv/cv.h>
 #include <ros/ros.h>
-
-#include "KeyFrame.h"
-#include "ORBmatcher.h"
 
 #include "dutils/Random.h"
 

@@ -21,16 +21,17 @@
 #ifndef LOOPCLOSING_H
 #define LOOPCLOSING_H
 
-#include "KeyFrame.h"
-#include "LocalMapping.h"
-#include "MapDatabase.h"
-#include "Map.h"
-#include "ORBVocabulary.h"
-#include "Tracking.h"
+#include "types/KeyFrame.h"
+#include "types/Map.h"
+#include "types/MapDatabase.h"
+#include "types/ORBVocabulary.h"
+#include "types/KeyFrameDatabase.h"
+
+#include "threads/OrbThread.h"
+#include "threads/LocalMapping.h"
+#include "threads/Tracking.h"
+
 #include <boost/thread.hpp>
-
-#include "KeyFrameDatabase.h"
-
 #include <g2o/types/sim3/types_seven_dof_expmap.h>
 
 namespace ORB_SLAM
@@ -40,8 +41,7 @@ class Tracking;
 class LocalMapping;
 class KeyFrameDatabase;
 
-
-class LoopClosing
+class LoopClosing : public OrbThread 
 {
 public:
 
@@ -51,30 +51,15 @@ public:
 
 public:
 
-    LoopClosing(MapDatabase* pMap);
-
-    void SetTracker(Tracking* pTracker);
-
-    void SetLocalMapper(LocalMapping* pLocalMapper);
-
+    LoopClosing(MapDatabase *pMap);
+    
     void Run();
+    
+    // Override super, need to clean up local vars
+    void Release();
+    void ResetIfRequested();
 
     void InsertKeyFrame(KeyFrame *pKF);
-    
-    // Thread Synch
-    void RequestStop();
-    void RequestReset();
-
-    void Stop();
-
-    void Release();
-
-    bool isStopped();
-
-    bool stopRequested();
-    
-    void gracefullStart();
-    void gracefullStop();    
 
 protected:
 
@@ -87,15 +72,6 @@ protected:
     void SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap);
 
     void CorrectLoop();
-
-    void ResetIfRequested();
-    bool mbResetRequested;
-    boost::mutex mMutexReset;
-
-    MapDatabase* mpMap;
-    Tracking* mpTracker;
-
-    LocalMapping *mpLocalMapper;
 
     std::list<KeyFrame*> mlpLoopKeyFrameQueue;
 
@@ -119,12 +95,7 @@ protected:
     double mScale_cw;
 
     long unsigned int mLastLoopKFid;
-    
-    bool mbStopped;
-    bool mbStopRequested;
-    boost::mutex mMutexStop;
-    
-    bool gracefullStatus;
+
 };
 
 } //namespace ORB_SLAM

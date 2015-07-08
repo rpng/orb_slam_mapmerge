@@ -21,12 +21,13 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "MapPoint.h"
-#include "KeyFrame.h"
-#include "KeyFrameDatabase.h"
-#include <set>
+#include "types/MapPoint.h"
+#include "types/KeyFrame.h"
+#include "types/KeyFrameDatabase.h"
 
+#include <set>
 #include <boost/thread.hpp>
+#include <opencv2/core/core.hpp>
 
 
 

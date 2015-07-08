@@ -18,24 +18,25 @@
 * along with ORB-SLAM. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "Tracking.h"
-#include <ros/ros.h>
-#include <cv_bridge/cv_bridge.h>
+#include "threads/Tracking.h"
 
-#include <opencv2/opencv.hpp>
+#include "publishers/FramePublisher.h"
+#include "publishers/MapPublisher.h"
 
-#include "ORBmatcher.h"
-#include "FramePublisher.h"
-#include "Converter.h"
-#include "Map.h"
-#include "Initializer.h"
+#include "types/Map.h"
+#include "types/MapDatabase.h"
 
-#include "Optimizer.h"
-#include "PnPsolver.h"
+#include "util/ORBmatcher.h"
+#include "util/Converter.h"
+#include "util/Initializer.h"
+#include "util/Optimizer.h"
+#include "util/PnPsolver.h"
 
 #include <iostream>
 #include <fstream>
-
+#include <ros/ros.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 
@@ -44,7 +45,7 @@ namespace ORB_SLAM
 
 
 Tracking::Tracking(FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap, string strSettingPath):
-    mState(NO_IMAGES_YET), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher), mpMap(pMap), 
+    OrbThread(pMap), mState(NO_IMAGES_YET), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher),
     localMap(NULL), mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
 {
     // Load camera parameters from settings file
@@ -142,20 +143,6 @@ Tracking::Tracking(FramePublisher *pFramePublisher, MapPublisher *pMapPublisher,
     mTfBr.sendTransform(tf::StampedTransform(tfT,ros::Time::now(), "/ORB_SLAM/World", "/ORB_SLAM/Camera"));
 }
 
-void Tracking::SetLocalMapper(LocalMapping *pLocalMapper)
-{
-    mpLocalMapper=pLocalMapper;
-}
-
-void Tracking::SetLoopClosing(LoopClosing *pLoopClosing)
-{
-    mpLoopClosing=pLoopClosing;
-}
-
-void Tracking::SetMapMerger(MapMerging* pMapMerging) {
-    mpMapMerging=pMapMerging;
-}
-
 void Tracking::Run()
 {
     ros::NodeHandle nodeHandler;
@@ -196,9 +183,9 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     }
 
     if(mState==WORKING)
-        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpORBextractor, mpMap->getVocab(),mK,mDistCoef);
+        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpORBextractor, mapDB->getVocab(),mK,mDistCoef);
     else
-        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor, mpMap->getVocab(),mK,mDistCoef);
+        mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor, mapDB->getVocab(),mK,mDistCoef);
     
     // Let the frame publisher know what state we are in
     mLastProcessedState=mState;
@@ -227,7 +214,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 
         // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse)
         // If we are not using the motion model, have less then 4 key frames in the map, have an empty velocity vector, or have just had a relocalisation in the past two frames.
-        if(!mbMotionModel || mpMap->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
+        if(!mbMotionModel || mapDB->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
         {
             bOK = TrackPreviousFrame();
         }
@@ -269,9 +256,9 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         // Next time we should try to do relocalisation, or re init
         else {
             // Tell the other threads to stop
-            mpLocalMapper->gracefullStop();
-            mpLoopClosing->gracefullStop();
-            mpMapMerging->gracefullStop();
+            mpLocalMapper->RequestStop();
+            mpLoopCloser->RequestStop();
+            mpMapMerger->RequestStop();
             // Set lost state
             mState = NOT_INITIALIZED;
             // Force relocalisation
@@ -280,9 +267,9 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         
         // Reset if the camera get lost soon after initialization
         if(mState==NOT_INITIALIZED)
-            if(mpMap->getCurrent()->KeyFramesInMap()<=5) {
+            if(mapDB->getCurrent()->KeyFramesInMap()<=5) {
                 ROS_INFO("ORB-SLAM - Erasing map, too few keyframes.");
-                mpMap->getCurrent()->setErased(true);
+                mapDB->getCurrent()->setErased(true);
             }
 
         // Update motion model
@@ -400,7 +387,7 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
 {
     // Create new map in database
     if(!localMap)
-        localMap = mpMap->getNewMap();
+        localMap = mapDB->getNewMap();
     
     // Set Frame Poses
     mInitialFrame.mTcw = cv::Mat::eye(4,4,CV_32F);
@@ -501,16 +488,16 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     mpMapPublisher->SetCurrentCameraPose(pKFcur->GetPose());
     
     // Add to db
-    mpMap->addMap(localMap);
+    mapDB->addMap(localMap);
     // Remove old map
     localMap = NULL;
     
     mState=WORKING;
     
     // Ensure that our other threads are started
-    mpLocalMapper->gracefullStart();
-    mpLoopClosing->gracefullStart();
-    mpMapMerging->gracefullStart();
+    mpLocalMapper->Release();
+    mpLoopCloser->Release();
+    mpMapMerger->Release();
     
     // If we were trying to relocalize, we are on a new map, let the map closer handle it
     ResetRelocalisationRequested();
@@ -524,7 +511,7 @@ bool Tracking::TrackPreviousFrame()
     // Search first points at coarse scale levels to get a rough initial estimate
     int minOctave = 0;
     int maxOctave = mCurrentFrame.mvScaleFactors.size()-1;
-    if(mpMap->getCurrent()->KeyFramesInMap()>5)
+    if(mapDB->getCurrent()->KeyFramesInMap()>5)
         minOctave = maxOctave/2+1;
 
     int nmatches = matcher.WindowSearch(mLastFrame,mCurrentFrame,200,vpMapPointMatches,minOctave);
@@ -661,7 +648,7 @@ bool Tracking::NeedNewKeyFrame()
         return false;
 
     // Not insert keyframes if not enough frames from last relocalisation have passed
-    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mpMap->getCurrent()->KeyFramesInMap()>mMaxFrames)
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mapDB->getCurrent()->KeyFramesInMap()>mMaxFrames)
         return false;
 
     // Reference KeyFrame MapPoints
@@ -696,7 +683,7 @@ bool Tracking::NeedNewKeyFrame()
 
 void Tracking::CreateNewKeyFrame()
 {
-    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mpMap->getCurrent(),mpMap->getCurrent()->GetKeyFrameDatabase());
+    KeyFrame* pKF = new KeyFrame(mCurrentFrame,mapDB->getCurrent(),mapDB->getCurrent()->GetKeyFrameDatabase());
 
     mpLocalMapper->InsertKeyFrame(pKF);
 
@@ -760,7 +747,7 @@ void Tracking::SearchReferencePointsInFrustum()
 void Tracking::UpdateReference()
 {    
     // This is for visualization
-    mpMap->getCurrent()->SetReferenceMapPoints(mvpLocalMapPoints);
+    mapDB->getCurrent()->SetReferenceMapPoints(mvpLocalMapPoints);
 
     // Update
     UpdateReferenceKeyFrames();
@@ -879,9 +866,9 @@ bool Tracking::Relocalisation()
     // Track Lost: Query KeyFrame Database for keyframe candidates for relocalisation
     vector<KeyFrame*> vpCandidateKFs;
     // Add all keyframe candidates we have
-    for(size_t i=0; i<mpMap->getAll().size(); i++) {
-        if(!mpMap->getAll().at(i)->getErased()) {
-            vector<KeyFrame*> temp = mpMap->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
+    for(size_t i=0; i<mapDB->getAll().size(); i++) {
+        if(!mapDB->getAll().at(i)->getErased()) {
+            vector<KeyFrame*> temp = mapDB->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
             vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
         }
     }
@@ -1035,16 +1022,16 @@ bool Tracking::Relocalisation()
     {  
         mnLastRelocFrameId = mCurrentFrame.mnId;
         // If we have a match id, get its map, and update the mapDB's current map
-        if(match != -1 && mpMap->setMap(vpCandidateKFs[match]->getMap())) {
+        if(match != -1 && mapDB->setMap(vpCandidateKFs[match]->getMap())) {
             ROS_INFO("ORB-SLAM - Successful relocalisation to old map.");
             // We are relocalized, reset it
             ResetRelocalisationRequested();
             // Update working state
             mState = WORKING;
             // Ensure that our other threads are started
-            mpLocalMapper->gracefullStart();
-            mpLoopClosing->gracefullStart();
-            mpMapMerging->gracefullStart();
+            mpLocalMapper->Release();
+            mpLoopCloser->Release();
+            mpMapMerger->Release();
             return true;
         }
         else {
@@ -1098,7 +1085,7 @@ void Tracking::Reset()
     // Reset Local Mapping
     mpLocalMapper->RequestReset();
     // Reset Loop Closing
-    mpLoopClosing->RequestReset();
+    mpLoopCloser->RequestReset();
     // This should be only called if the local map fails
     // We let the map closing thread close all the maps, 
     // and do culling on the maps created

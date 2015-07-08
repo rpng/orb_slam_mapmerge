@@ -26,9 +26,9 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
-#include "MapPoint.h"
-#include "KeyFrame.h"
-#include "Frame.h"
+#include "types/MapPoint.h"
+#include "types/KeyFrame.h"
+#include "types/Frame.h"
 
 
 namespace ORB_SLAM

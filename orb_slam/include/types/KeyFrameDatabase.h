@@ -25,11 +25,11 @@
 #include <list>
 #include <set>
 
-#include "KeyFrame.h"
-#include "Frame.h"
-#include "ORBVocabulary.h"
+#include "types/KeyFrame.h"
+#include "types/Frame.h"
+#include "types/ORBVocabulary.h"
 
-#include "ros/ros.h"
+#include <ros/ros.h>
 
 #include <boost/thread.hpp>
 
