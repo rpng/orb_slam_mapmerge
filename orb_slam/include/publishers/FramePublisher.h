@@ -27,6 +27,8 @@
 
 #include "threads/Tracking.h"
 
+#include "util/FpsCounter.h"
+
 #include <ros/ros.h>
 
 #include <opencv2/core/core.hpp>
@@ -43,7 +45,7 @@ class Tracking;
 class FramePublisher
 {
 public:
-    FramePublisher();    
+    FramePublisher(FpsCounter* pfps);    
 
     void Update(Tracking *pTracker);
 
@@ -79,6 +81,8 @@ protected:
     MapDatabase* mpMap;
 
     boost::mutex mMutex;
+    
+    FpsCounter* fps_counter;
 };
 
 } //namespace ORB_SLAM

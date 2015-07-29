@@ -13,4 +13,6 @@
 !/orb_slam/generated/.gitkeep
 
 # Codelight projects
-*project
+*.project
+*.mk
+/default/*

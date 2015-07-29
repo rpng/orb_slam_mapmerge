@@ -23,6 +23,7 @@
 #include <ros/ros.h>
 #include <ros/package.h>
 #include <boost/thread.hpp>
+#include <boost/filesystem.hpp>
 
 #include <opencv2/core/core.hpp>
 
@@ -31,6 +32,7 @@
 #include "types/ORBVocabulary.h"
 
 #include "threads/Tracking.h"
+#include "threads/Relocalization.h"
 #include "threads/MapMerging.h"
 #include "threads/LocalMapping.h"
 #include "threads/LoopClosing.h"
@@ -39,6 +41,7 @@
 #include "publishers/MapPublisher.h"
 
 #include "util/Converter.h"
+#include "util/FpsCounter.h"
 
 #include <sstream>
 
@@ -74,9 +77,12 @@ int main(int argc, char **argv)
         ros::shutdown();
         return 1;
     }
+    
+    // Create fps counter
+    FpsCounter fps_counter;
 
     //Create Frame Publisher for image_view
-    ORB_SLAM::FramePublisher FramePub;
+    ORB_SLAM::FramePublisher FramePub(&fps_counter);
 
     //Load ORB Vocabulary
     string strVocFile = ros::package::getPath("orb_slam")+"/"+argv[1];
@@ -100,40 +106,49 @@ int main(int argc, char **argv)
     ORB_SLAM::MapPublisher MapPub(&WorldDB);
 
     //Initialize the Tracking Thread, Local Mapping Thread and Loop Closing Thread
-    ORB_SLAM::Tracking Tracker(&FramePub, &MapPub, &WorldDB, strSettingsFile);
+    ORB_SLAM::Tracking Tracker(&FramePub, &MapPub, &WorldDB, &fps_counter, strSettingsFile);
+    ORB_SLAM::Relocalization Relocalizer(&WorldDB);
     ORB_SLAM::LocalMapping LocalMapper(&WorldDB);
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB);
     ORB_SLAM::MapMerging MapMerger(&WorldDB);
     
     // Start threads for all three
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
+    boost::thread trackingRelocalizer(&ORB_SLAM::Relocalization::Run, &Relocalizer);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
     boost::thread loopClosingThread(&ORB_SLAM::LoopClosing::Run, &LoopCloser);
     boost::thread mapMergingThread(&ORB_SLAM::MapMerging::Run, &MapMerger);
     
     //Set pointers between threads
-    Tracker.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
-    LocalMapper.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
-    LoopCloser.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
-    MapMerger.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Tracker);
+    Tracker.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Relocalizer, &Tracker);
+    Relocalizer.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Relocalizer, &Tracker);
+    LocalMapper.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Relocalizer, &Tracker);
+    LoopCloser.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Relocalizer, &Tracker);
+    MapMerger.SetThreads(&LocalMapper, &LoopCloser, &MapMerger, &Relocalizer, &Tracker);
 
     //This "main" thread will show the current processed frame and publish the map
     float fps = fsSettings["Camera.fps"];
     if(fps==0)
         fps=30;
 
-    ros::Rate r(fps);
-
+    ros::Rate r1(fps);
     while (ros::ok())
     {
         FramePub.Refresh();
         MapPub.Refresh();
         Tracker.CheckResetByPublishers();
-        r.sleep();
+        r1.sleep();
     }
     
     // Nice new line
     cout << endl;
+    
+    // Clear old generated folder
+    boost::filesystem::path path = ros::package::getPath("orb_slam") + "/generated/";
+    for (boost::filesystem::directory_iterator end_dir_it, it(path); it!=end_dir_it; ++it) {
+        boost::filesystem::remove_all(it->path());
+    }
+
     // Save keyframe poses at the end of the execution
     for (std::size_t i = 0; i < WorldDB.getAll().size(); ++i) {
         // Output stream
@@ -161,6 +176,10 @@ int main(int argc, char **argv)
             // Timestamp: t
             // Position: x, y, z
             // Quaternions: q0, q1, q2, q3
+//            float roll =  atan2(2*(q[0]*q[1] + q[3]*q[2]), q[3]*q[3] + q[0]*q[0] - q[1]*q[1] - q[2]*q[2]);
+//            float pitch =  atan2(2*(q[1]*q[1] + q[3]*q[0]), q[3]*q[3] - q[0]*q[0] - q[1]*q[1] + q[2]*q[2]);
+//            float yaw =  asin(-2*(q[0]*q[2] - q[3]*q[1]));
+            
             f << setprecision(6) << pKF->mTimeStamp << setprecision(7) 
                 << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
                 << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;

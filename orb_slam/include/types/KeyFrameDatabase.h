@@ -46,7 +46,6 @@ class KeyFrameDatabase
 public:
 
   KeyFrameDatabase(const ORBVocabulary &voc);
-  ~KeyFrameDatabase();
 
   void add(KeyFrame* pKF);
 

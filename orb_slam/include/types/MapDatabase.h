@@ -55,6 +55,9 @@ public:
     // Removes a map from the database
     void eraseMap(Map* map);
     
+    // Removes the map, but do not delete data
+    void removeMap(Map* m);
+    
     // Set map from the database
     bool setMap(Map* map);
     

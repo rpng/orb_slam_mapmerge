@@ -54,16 +54,20 @@ public:
     void Run();
     
     void InsertKeyFrame(KeyFrame *pKF);
+    
+    void Release();
+    
+    void ResetIfRequested();
   
 protected:
 
     bool CheckNewKeyFrames();
 
-    bool DetectLoop(Map* map);
+    bool DetectLoop();
 
-    bool ComputeSim3(Map* map);
+    bool ComputeSim3();
 
-    void CorrectLoop(Map* map);
+    void CorrectLoop();
     
     void SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap);
 

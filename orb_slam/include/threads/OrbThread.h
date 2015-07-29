@@ -31,6 +31,7 @@ namespace ORB_SLAM
 {
 
 class Tracking;
+class Relocalization;
 class LocalMapping;
 class LoopClosing;
 class MapMerging;
@@ -43,7 +44,7 @@ class OrbThread
         OrbThread(MapDatabase* pMap);
         
         // Set the links to other threads
-        void SetThreads(LocalMapping* pLocalMapper, LoopClosing* pLoopCloser, MapMerging* pMapMerger, Tracking* pTracker);
+        void SetThreads(LocalMapping* pLocalMapper, LoopClosing* pLoopCloser, MapMerging* pMapMerger, Relocalization* pRelocalizer, Tracking* pTracker);
         
         // Our main run function for the thread
         // The subclass needs to handle this
@@ -73,6 +74,7 @@ class OrbThread
         LocalMapping* mpLocalMapper;
         LoopClosing* mpLoopCloser;
         MapMerging* mpMapMerger;
+        Relocalization* mpRelocalizer;
         Tracking* mpTracker;
         
         // Thread syncing vars

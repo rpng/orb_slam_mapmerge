@@ -60,9 +60,11 @@ add_executable(${PROJECT_NAME}
   src/threads/LoopClosing.cc
   src/threads/MapMerging.cc
   src/threads/OrbThread.cc
+  src/threads/Relocalization.cc
   src/threads/Tracking.cc
   src/publishers/MapPublisher.cc
   src/publishers/FramePublisher.cc
+  src/util/FpsCounter.cc
   src/util/Converter.cc
   src/util/Initializer.cc
   src/util/Optimizer.cc

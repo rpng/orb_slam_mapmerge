@@ -36,7 +36,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     const char* CAMERA_NAMESPACE = "Camera";
 
     //Configure MapPoints
-    fPointSize=0.005;
+    fPointSize=0.01;
     mPoints.header.frame_id = MAP_FRAME_ID;
     mPoints.ns = POINTS_NAMESPACE;
     mPoints.id=0;
@@ -48,7 +48,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     mPoints.color.a = 1.0;
 
     //Configure KeyFrames
-    fCameraSize=0.02;
+    fCameraSize=0.04;
     mKeyFrames.header.frame_id = MAP_FRAME_ID;
     mKeyFrames.ns = KEYFRAMES_NAMESPACE;
     mKeyFrames.id=1;
@@ -131,11 +131,11 @@ void MapPublisher::Refresh()
         vector<MapPoint*> vMapPoints = mpMap->getCurrent()->GetAllMapPoints();
         vector<MapPoint*> vRefMapPoints = mpMap->getCurrent()->GetReferenceMapPoints();
 
-        PublishMapPoints(vMapPoints, vRefMapPoints);   
+        //PublishMapPoints(vMapPoints, vRefMapPoints);   
         PublishKeyFrames(vKeyFrames);
-
+        
         mpMap->getCurrent()->ResetUpdated();
-    }    
+    } 
 }
 
 void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector<MapPoint*> &vpRefMPs)

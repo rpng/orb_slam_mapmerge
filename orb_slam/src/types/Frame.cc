@@ -67,7 +67,6 @@ Frame::Frame(cv::Mat &im_, const double &timeStamp, ORBextractor* extractor, ORB
 
     UndistortKeyPoints();
 
-
     // This is done for the first created Frame
     if(mbInitialComputations)
     {
@@ -85,7 +84,7 @@ Frame::Frame(cv::Mat &im_, const double &timeStamp, ORBextractor* extractor, ORB
     }
 
 
-    mnId=nNextId++;    
+    mnId=nNextId++;
 
     //Scale Levels Info
     mnScaleLevels = mpORBextractor->GetLevels();
@@ -120,7 +119,6 @@ Frame::Frame(cv::Mat &im_, const double &timeStamp, ORBextractor* extractor, ORB
         if(PosInGrid(kp,nGridPosX,nGridPosY))
             mGrid[nGridPosX][nGridPosY].push_back(i);
     }
-
 
     mvbOutlier = vector<bool>(N,false);
 

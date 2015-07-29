@@ -35,14 +35,6 @@ KeyFrameDatabase::KeyFrameDatabase (const ORBVocabulary &voc):
     mvInvertedFile.resize(voc.size());
 }
 
-KeyFrameDatabase:: ~KeyFrameDatabase() {
-    for(vector<list<KeyFrame*> >::iterator sit=mvInvertedFile.begin(), send=mvInvertedFile.end(); sit!=send; sit++){
-            for(list<KeyFrame*>::iterator sit2=(*sit).begin(), send2=(*sit).end(); sit2!=send2; sit2++){
-                //delete *sit2;
-            } 
-    }
-}
-
 void KeyFrameDatabase::add(KeyFrame *pKF)
 {
     boost::mutex::scoped_lock lock(mMutex);
@@ -205,7 +197,6 @@ vector<KeyFrame*> KeyFrameDatabase::DetectLoopCandidates(KeyFrame* pKF, float mi
 vector<KeyFrame*> KeyFrameDatabase::DetectRelocalisationCandidates(Frame *F)
 {
     list<KeyFrame*> lKFsSharingWords;
-
     // Search all keyframes that share a word with current frame
     {
         boost::mutex::scoped_lock lock(mMutex);
@@ -213,7 +204,6 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalisationCandidates(Frame *F)
         for(DBoW2::BowVector::const_iterator vit=F->mBowVec.begin(), vend=F->mBowVec.end(); vit != vend; vit++)
         {
             list<KeyFrame*> &lKFs =   mvInvertedFile[vit->first];
-
             for(list<KeyFrame*>::iterator lit=lKFs.begin(), lend= lKFs.end(); lit!=lend; lit++)
             {
                 KeyFrame* pKFi=*lit;
@@ -227,6 +217,7 @@ vector<KeyFrame*> KeyFrameDatabase::DetectRelocalisationCandidates(Frame *F)
             }
         }
     }
+
     if(lKFsSharingWords.empty())
         return vector<KeyFrame*>();
 

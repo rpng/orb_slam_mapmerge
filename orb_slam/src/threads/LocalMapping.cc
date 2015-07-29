@@ -36,16 +36,18 @@ LocalMapping::LocalMapping(MapDatabase *pMap):
 
 void LocalMapping::Run()
 {
-
     ros::Rate r(500);
     while(ros::ok())
     {
-        // Check that we have a map initialized, and we are not gracefully stopped
-        if(mapDB->getCurrent() != NULL)
+        // Reset if needed
+        ResetIfRequested();
+
+        // Check if there are keyframes in the queue
+        if(CheckNewKeyFrames())
         {
-            // Check if there are keyframes in the queue
-            if(CheckNewKeyFrames())
-            { 
+            // Check that we have a map initialized
+            if(mapDB->getCurrent() != NULL)
+            {
                 // Tracking will see that Local Mapping is busy
                 SetAcceptKeyFrames(false);
 
@@ -78,9 +80,9 @@ void LocalMapping::Run()
                         SetAcceptKeyFrames(true);
                 }
 
+                // Insert frames into our loop and map closing threads
                 mpLoopCloser->InsertKeyFrame(mpCurrentKeyFrame);
                 mpMapMerger->InsertKeyFrame(mpCurrentKeyFrame);
-
             }
         }
 
@@ -88,7 +90,7 @@ void LocalMapping::Run()
         if(stopRequested())
         {
             Stop();
-            ros::Rate r2(1000);
+            ros::Rate r2(200);
             while(isStopped() && ros::ok())
             {
                 r2.sleep();
@@ -96,8 +98,7 @@ void LocalMapping::Run()
             SetAcceptKeyFrames(true);
         }
 
-        ResetIfRequested();
-        // This sleep allows the Loop closing thread to try to close loops
+        // Sleep
         r.sleep();
     }
 }
@@ -109,7 +110,6 @@ void LocalMapping::InsertKeyFrame(KeyFrame *pKF)
     mbAbortBA=true;
     SetAcceptKeyFrames(false);
 }
-
 
 bool LocalMapping::CheckNewKeyFrames()
 {
@@ -166,7 +166,8 @@ void LocalMapping::ProcessNewKeyFrame()
     mpCurrentKeyFrame->UpdateConnections();
 
     // Insert Keyframe in Map
-    mapDB->getCurrent()->AddKeyFrame(mpCurrentKeyFrame);
+    if(mapDB->getCurrent() != NULL)
+        mapDB->getCurrent()->AddKeyFrame(mpCurrentKeyFrame);
 }
 
 void LocalMapping::MapPointCulling()
@@ -358,9 +359,7 @@ void LocalMapping::CreateNewMapPoints()
             pKF2->AddMapPoint(pMP,idx2);
 
             pMP->ComputeDistinctiveDescriptors();
-
             pMP->UpdateNormalAndDepth();
-
             mapDB->getCurrent()->AddMapPoint(pMP);
             mlpRecentAddedMapPoints.push_back(pMP);
         }
@@ -471,8 +470,9 @@ void LocalMapping::Release()
     boost::mutex::scoped_lock lock2(mMutexNewKFs);
     mbStopped = false;
     mbStopRequested = false;
-    for(list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)
-        delete *lit;
+    // We do not need to delete keyframes any more because they are linked to maps
+    //    for(list<KeyFrame*>::iterator lit = mlNewKeyFrames.begin(), lend=mlNewKeyFrames.end(); lit!=lend; lit++)
+    //        delete *lit;
     mlNewKeyFrames.clear();
 }
 
@@ -560,6 +560,7 @@ cv::Mat LocalMapping::SkewSymmetricMatrix(const cv::Mat &v)
 void LocalMapping::ResetIfRequested()
 {
     boost::mutex::scoped_lock lock(mMutexReset);
+    boost::mutex::scoped_lock lock2(mMutexNewKFs);
     if(mbResetRequested)
     {
         mlNewKeyFrames.clear();

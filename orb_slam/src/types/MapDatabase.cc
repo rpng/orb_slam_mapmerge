@@ -62,15 +62,36 @@ void MapDatabase::eraseMap(Map* m){
     }
 }
 
-bool MapDatabase::setMap(Map* m){
+void MapDatabase::removeMap(Map* m){
     boost::mutex::scoped_lock lock(mapMutex);
+    // Check to see if it is the current one
+    if(currentMapID > 0 && currentMapID < maps.size()+1 && m == maps.at(currentMapID-1))
+        currentMapID = 0;
+    // Delete it
     for (std::size_t i = 0; i != maps.size(); ++i) {
+        // If a match is found delete it, and remove it from the  vector
         if(maps[i] == m) {
-            currentMapID = i+1;
-            return true;
+            maps.erase(maps.begin()+i);
+            return;
         }
     }
-    return false;
+}
+
+bool MapDatabase::setMap(Map* m){
+    boost::mutex::scoped_lock lock(mapMutex);
+    unsigned int id_new = 0;
+    for (std::size_t i = 0; i != maps.size(); ++i) {
+        if(maps[i] == m) {
+            id_new = i+1;
+            break;
+        }
+    }
+    if(id_new <= 0 || id_new > maps.size())
+        return false;
+    else {
+        currentMapID = id_new;
+        return true;
+    }
 }
 
 Map* MapDatabase::getCurrent() {

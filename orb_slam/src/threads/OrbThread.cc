@@ -16,6 +16,7 @@
 */
 
 #include "threads/OrbThread.h"
+#include "types/MapDatabase.h"
 
 #include <ros/ros.h>
 
@@ -27,14 +28,15 @@ namespace ORB_SLAM
         mapDB = pMap;
         mbResetRequested = false;
         mbStopped = false;
-        mbStopRequested = false;
+        mbStopRequested = true;
     }
     
-    void OrbThread::SetThreads(LocalMapping* pLocalMapper, LoopClosing* pLoopCloser, MapMerging* pMapMerger, Tracking* pTracker)
+    void OrbThread::SetThreads(LocalMapping* pLocalMapper, LoopClosing* pLoopCloser, MapMerging* pMapMerger, Relocalization* pRelocalizer, Tracking* pTracker)
     {
         mpLocalMapper = pLocalMapper;
         mpLoopCloser = pLoopCloser;
         mpMapMerger = pMapMerger;
+        mpRelocalizer = pRelocalizer;
         mpTracker = pTracker;
     }
     
@@ -46,20 +48,8 @@ namespace ORB_SLAM
 
     void OrbThread::RequestReset()
     {
-        {
-            boost::mutex::scoped_lock lock(mMutexReset);
-            mbResetRequested = true;
-        }
-        ros::Rate r(500);
-        while(ros::ok())
-        {
-            {
-            boost::mutex::scoped_lock lock2(mMutexReset);
-            if(!mbResetRequested)
-                break;
-            }
-            r.sleep();
-        }
+        boost::mutex::scoped_lock lock(mMutexReset);
+        mbResetRequested = true;
     }
 
     void OrbThread::Stop()

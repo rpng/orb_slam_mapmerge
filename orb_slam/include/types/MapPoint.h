@@ -31,6 +31,15 @@
 namespace ORB_SLAM
 {
 
+
+
+
+
+
+
+
+
+
 class ImageFeature;
 class KeyFrame;
 class Map;

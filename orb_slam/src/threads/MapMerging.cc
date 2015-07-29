@@ -32,43 +32,25 @@ MapMerging::MapMerging(MapDatabase *pMap): OrbThread(pMap) {}
 
 void MapMerging::Run()
 {
-
-    ros::Rate r(200);
-
+    ros::Rate r(400);
     while(ros::ok())
     {
-        // Check that we have a map initialized
-        if(mapDB->getCurrent() != NULL)
+        // Reset if needed
+        ResetIfRequested();
+
+        // Check if there are keyframes in the queue
+        if(CheckNewKeyFrames())
         {
-              // Check if there are keyframes in the queue
-            if(CheckNewKeyFrames())
+            // Detect loop candidates
+            if(!stopRequested() && DetectLoop())
             {
-                // Query the database imposing the minimum score
-                for(size_t i=0; i<mapDB->getAll().size(); i++) {
-                    // Skipped erased maps
-                    if(mapDB->getAll().at(i)->getErased())
-                        continue;
-                    // Ignore keyframes from the current db, let the loop closer take care of that
-                    if(mapDB->getAll().at(i) != mapDB->getCurrent()) {
-                        // Detect loop candidates
-                        if(DetectLoop(mapDB->getAll().at(i)))
-                        {
-                            // Compute similarity transformation [sR|t]
-                           if(ComputeSim3(mapDB->getAll().at(i)))
-                           {
-                               ROS_INFO("ORB-SLAM - Map Merge Detected!");
-                               CorrectLoop(mapDB->getAll().at(i));
-                               ROS_INFO("ORB-SLAM - Done Merging Maps!");
-                           }
-                        }
-                    }
-                }
-                
-                // Remove the keyframe we checked
-                {
-                    boost::mutex::scoped_lock lock(mMutexLoopQueue);
-                    mlpLoopKeyFrameQueue.pop_front();
-                }
+                // Compute similarity transformation [sR|t]
+               if(!stopRequested() &&ComputeSim3())
+               {
+                   ROS_INFO("ORB-SLAM - Map Merge Detected");
+                   CorrectLoop();
+                   ROS_INFO("ORB-SLAM - Done Merging Maps");
+               }
             }
         }
         
@@ -76,7 +58,7 @@ void MapMerging::Run()
         if(stopRequested())
         {
             Stop();
-            ros::Rate r2(1000);
+            ros::Rate r2(200);
             while(isStopped() && ros::ok())
             {
                 r2.sleep();
@@ -100,11 +82,12 @@ bool MapMerging::CheckNewKeyFrames()
     return(!mlpLoopKeyFrameQueue.empty());
 }
 
-bool MapMerging::DetectLoop(Map* map)
+bool MapMerging::DetectLoop()
 {
-    {
+    { 
         boost::mutex::scoped_lock lock(mMutexLoopQueue);
         mpCurrentKF = mlpLoopKeyFrameQueue.front();
+        mlpLoopKeyFrameQueue.pop_front();
         // Avoid that a keyframe can be erased while it is being process by this thread
         mpCurrentKF->SetNotErase();
     }
@@ -112,17 +95,16 @@ bool MapMerging::DetectLoop(Map* map)
     //If the map contains less than 10 KF or less than 10KF have passed from last loop detection
     if(mpCurrentKF->mnId<mLastLoopKFid+10)
     {
-        //mapDB->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
         mpCurrentKF->SetErase();
         return false;
     }
-
-    // Compute reference BoW similarity score
+   
+   // Compute reference BoW similarity score
     // This is the lowest score to a connected keyframe in the covisibility graph
     // We will impose loop candidates to have a higher similarity than this
     vector<KeyFrame*> vpConnectedKeyFrames = mpCurrentKF->GetVectorCovisibleKeyFrames();
     DBoW2::BowVector CurrentBowVec = mpCurrentKF->GetBowVector();
-    float minScore = 1;
+    float minScore = 1;     
     for(size_t i=0; i<vpConnectedKeyFrames.size(); i++)
     {
         KeyFrame* pKF = vpConnectedKeyFrames[i];
@@ -137,12 +119,21 @@ bool MapMerging::DetectLoop(Map* map)
     }
     
     // Query the database imposing the minimum score
-    vector<KeyFrame*> vpCandidateKFs = map->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
+    vector<KeyFrame*> vpCandidateKFs;
+    
+    // Loop through each map, and add candidates to the list
+    for(size_t i=0; i<mapDB->getAll().size(); i++) {
+        // Ignore keyframes from the current db, let the loop closer take care of that
+        if(mapDB->getAll().at(i) != mapDB->getCurrent()) {
+            vector<KeyFrame*> temp = mapDB->getAll().at(i)->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
+            vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
+        }
+    }
 
     // If there are no loop candidates, just add new keyframe and return false
     if(vpCandidateKFs.empty())
     {
-        //mvConsistentGroups.clear();
+        mvConsistentGroups.clear();
         mpCurrentKF->SetErase();
         return false;
     }
@@ -210,13 +201,13 @@ bool MapMerging::DetectLoop(Map* map)
 
     if(!mvpEnoughConsistentCandidates.empty())
         return true;
-        
+
     // Else we have not found one
     mpCurrentKF->SetErase();
     return false;
 }
 
-bool MapMerging::ComputeSim3(Map* map)
+bool MapMerging::ComputeSim3()
 {
     // For each consistent loop candidate we try to compute a Sim3
     const int nInitialCandidates = mvpEnoughConsistentCandidates.size();
@@ -389,16 +380,17 @@ bool MapMerging::ComputeSim3(Map* map)
 
 }
 
-void MapMerging::CorrectLoop(Map* map)
+void MapMerging::CorrectLoop()
 {
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
     mpLocalMapper->RequestStop();
     mpLoopCloser->RequestStop();
+    mpRelocalizer->RequestStop();
 
     // Wait until Local Mapping has effectively stopped
     ros::Rate r(1e4);
-    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped()))
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpRelocalizer->isStopped()))
     {
         r.sleep();
     }
@@ -412,12 +404,15 @@ void MapMerging::CorrectLoop(Map* map)
     g2o::Sim3 g2oSab;
     cv::Mat Tbw1;
     
-    // Figure out what the newest map is based on the returned old one
-    if(oldest == NULL) {
+    // Check to see if we have a valid map returned
+    if(oldest == NULL)
+    {
         ROS_ERROR("ORB-SLAM - Invalid maps trying to merge");
         return;
     }
-    else if(oldest == mpMatchedKF->getMap()) {
+    // Figure out what the newest map is based on the returned old one
+    else if(oldest == mpMatchedKF->getMap())
+    {
         // Update map varaibles
         newest = mpCurrentKF->getMap();
         // Different poses we have to convert to and from
@@ -425,7 +420,9 @@ void MapMerging::CorrectLoop(Map* map)
         g2oSab = mpMatchedgScm;
         Tbw1 = mpMatchedKF->GetPose();
     }
-    else {
+    // Flip the measurments if we are going oldest->new
+    else
+    {
         // Update map varaibles
         newest = mpMatchedKF->getMap();
         // Different poses we have to convert to and from
@@ -448,8 +445,8 @@ void MapMerging::CorrectLoop(Map* map)
     mpMatchedKF->UpdateConnections();
     
     // Print out the two poses
-    //std::cout << "C1 = "<< std::endl << " "  << mpCurrentKF->GetPose() << std::endl << std::endl;
-    //std::cout << "C2 = "<< std::endl << " "  << mpMatchedKF->GetPose() << std::endl << std::endl;
+    // std::cout << "C1 = "<< std::endl << " "  << mpCurrentKF->GetPose() << std::endl << std::endl;
+    // std::cout << "C2 = "<< std::endl << " "  << mpMatchedKF->GetPose() << std::endl << std::endl;
     
     // Loop through all keyframes
     size_t num_keys = newest->GetAllKeyFrames().size();
@@ -469,9 +466,6 @@ void MapMerging::CorrectLoop(Map* map)
         g2o::Sim3 g2oSiw2(Converter::toMatrix3d(Riw2),Converter::toVector3d(tiw2),1.0);
         // Converting from the keyframe's referance to the other global
         g2o::Sim3 g2oSiw1 = g2oSiw2* g2oSw2a*g2oSab*g2oSbw1;
-        // Debug
-        //std::cout << "Tiw2 = "<< std::endl << " "  << Tiw2 << std::endl;
-        //std::cout << "Tiw1 = "<< std::endl << " "  << g2oSiw1 << std::endl << std::endl << std::endl;
         // Update sim3 solvers with the new solution
         CorrectedSim3[pKFi]=g2oSiw1;
         NonCorrectedSim3[pKFi]=g2oSiw2;
@@ -522,6 +516,8 @@ void MapMerging::CorrectLoop(Map* map)
         double s = g2oCorrectedSiw.scale();
         
         // Debug
+        //std::cout << "Trans is: " << eigt << std::endl;
+        //std::cout << "Rots is: " << eigR << std::endl;
         //std::cout << "Scale is: " << s << std::endl;
 
         eigt *=(1./s); //[R t/s;0 1]
@@ -556,31 +552,27 @@ void MapMerging::CorrectLoop(Map* map)
     // Project MapPoints observed in the neighborhood of the loop keyframe
     // into the current keyframe and neighbors using corrected poses.
     // Fuse duplications.
-    // TODO: Understand why this is done for loop closing
     SearchAndFuse(CorrectedSim3);
 
     //Add edge
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
 
-    // Optimize
-    // TODO: Check to see if this is doing it right
-    //Optimizer::OptimizeEssentialGraph(oldest, mpMatchedKF, mpCurrentKF,  mg2oScw, CorrectedSim3, CorrectedSim3, LoopConnections);
 
-    // We just optimize the essential
-    oldest->SetFlagAfterBA();
-    
      // Update the current map
-    newest->setErased(true);
     mapDB->setMap(oldest);
+    // Remove the map from our list, but keep the data
+    mapDB->removeMap(newest);
+
+
+    // Force the tracker to relocalize the camera in the updated map
+    mpTracker->ForceInlineRelocalisation();
 
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
     mpLoopCloser->Release();
 
-    // Relocalize on old map
-    mpTracker->ForceRelocalisation();
-
+    // Update the local last loop id var
     mLastLoopKFid = mpCurrentKF->mnId;
 }
 
@@ -599,4 +591,27 @@ void MapMerging::SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap)
     }
 }
 
+void MapMerging::Release()
+{
+    boost::mutex::scoped_lock lock(mMutexStop);
+    boost::mutex::scoped_lock lock2(mMutexLoopQueue);
+    mbStopped = false;
+    mbStopRequested = false;
+    // We do not need to delete keyframes any more because they are linked to maps
+    //    for(list<KeyFrame*>::iterator lit = mlpLoopKeyFrameQueue.begin(), lend=mlpLoopKeyFrameQueue.end(); lit!=lend; lit++)
+    //        delete *lit;
+    mlpLoopKeyFrameQueue.clear();
+}
+
+void MapMerging::ResetIfRequested()
+{
+    boost::mutex::scoped_lock lock(mMutexReset);
+    boost::mutex::scoped_lock lock2(mMutexLoopQueue);
+    if(mbResetRequested)
+    {
+        mlpLoopKeyFrameQueue.clear();
+        mLastLoopKFid=0;
+        mbResetRequested=false;
+    }
+}
 } //namespace ORB_SLAM

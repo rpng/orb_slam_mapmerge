@@ -40,25 +40,35 @@ LoopClosing::LoopClosing(MapDatabase *pMap):
 
 void LoopClosing::Run()
 {
-
     ros::Rate r(200);
-
     while(ros::ok())
     {
-        // Check that we have a map initialized, and we are not gracefully stopped
-        if(mapDB->getCurrent() != NULL)
+        // Reset if needed
+        ResetIfRequested();
+
+        // Check if there are keyframes in the queue
+        if(CheckNewKeyFrames())
         {
-            // Check if there are keyframes in the queue
-            if(CheckNewKeyFrames())
+            {
+                boost::mutex::scoped_lock lock(mMutexLoopQueue);
+                mpCurrentKF = mlpLoopKeyFrameQueue.front();
+                mlpLoopKeyFrameQueue.pop_front();
+                // Avoid that a keyframe can be erased while it is being process by this thread
+                mpCurrentKF->SetNotErase();
+            }
+            // Check that we have a map initialized
+            if(mapDB->getCurrent() != NULL)
             {
                 // Detect loop candidates and check covisibility consistency
-                if(DetectLoop())
+                if(!stopRequested() && DetectLoop())
                 {
                    // Compute similarity transformation [sR|t]
-                   if(ComputeSim3())
+                   if(!stopRequested() && ComputeSim3())
                    {
                        // Perform loop fusion and pose graph optimization
+                       ROS_INFO("ORB-SLAM - Loop Close Detected");
                        CorrectLoop();
+                       ROS_INFO("ORB-SLAM - Loop Closed");
                    }
                 }
             }
@@ -68,14 +78,13 @@ void LoopClosing::Run()
         if(stopRequested())
         {
             Stop();
-            ros::Rate r2(1000);
+            ros::Rate r2(200);
             while(isStopped() && ros::ok())
             {
                 r2.sleep();
             }
         }
-        ResetIfRequested();        
-        // This sleep allows for the Local Mapping thread to gather more keyframes
+        // Sleep
         r.sleep();
     }
 }
@@ -95,14 +104,6 @@ bool LoopClosing::CheckNewKeyFrames()
 
 bool LoopClosing::DetectLoop()
 {
-    {
-        boost::mutex::scoped_lock lock(mMutexLoopQueue);
-        mpCurrentKF = mlpLoopKeyFrameQueue.front();
-        mlpLoopKeyFrameQueue.pop_front();
-        // Avoid that a keyframe can be erased while it is being process by this thread
-        mpCurrentKF->SetNotErase();
-    }
-
     //If the map contains less than 10 KF or less than 10KF have passed from last loop detection
     if(mpCurrentKF->mnId<mLastLoopKFid+10)
     {
@@ -133,7 +134,6 @@ bool LoopClosing::DetectLoop()
     // Query the database imposing the minimum score
     vector<KeyFrame*> vpCandidateKFs = mapDB->getCurrent()->GetKeyFrameDatabase()->DetectLoopCandidates(mpCurrentKF, minScore);
 
-
     // If there are no loop candidates, just add new keyframe and return false
     if(vpCandidateKFs.empty())
     {
@@ -154,7 +154,7 @@ bool LoopClosing::DetectLoop()
     for(size_t i=0, iend=vpCandidateKFs.size(); i<iend; i++)
     {
         KeyFrame* pCandidateKF = vpCandidateKFs[i];
-
+        
         set<KeyFrame*> spCandidateGroup = pCandidateKF->GetConnectedKeyFrames();
         spCandidateGroup.insert(pCandidateKF);
 
@@ -399,10 +399,12 @@ void LoopClosing::CorrectLoop()
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
     mpLocalMapper->RequestStop();
+    mpMapMerger->RequestStop();
+    mpRelocalizer->RequestStop();
 
     // Wait until Local Mapping has effectively stopped
     ros::Rate r(1e4);
-    while(ros::ok() && !mpLocalMapper->isStopped())
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped()))
     {
         r.sleep();
     }
@@ -418,7 +420,7 @@ void LoopClosing::CorrectLoop()
     CorrectedSim3[mpCurrentKF]=mg2oScw;
     cv::Mat Twc = mpCurrentKF->GetPoseInverse();
 
-
+    // Loop through each frame that is connected to the current frame
     for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
@@ -514,10 +516,10 @@ void LoopClosing::CorrectLoop()
     // Fuse duplications.
     SearchAndFuse(CorrectedSim3);
 
-
-    // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
+    // Our collection of keyframe links
     map<KeyFrame*, set<KeyFrame*> > LoopConnections;
 
+    // After the MapPoint fusion, new links in the covisibility graph will appear attaching both sides of the loop
     for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
     {
         KeyFrame* pKFi = *vit;
@@ -536,22 +538,25 @@ void LoopClosing::CorrectLoop()
         }
     }
 
-    mpTracker->ForceRelocalisation();
-
-    Optimizer::OptimizeEssentialGraph(mapDB->getCurrent(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
+    // We are going to optimize over the essential pose graph with the sim3s we have computed beforehand
+    Optimizer::OptimizeEssentialGraph(mpCurrentKF->getMap(), mpMatchedKF, mpCurrentKF,  mg2oScw, NonCorrectedSim3, CorrectedSim3, LoopConnections);
 
     //Add edge
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
 
-    ROS_INFO("ORB-SLAM - Loop Closed!");
-
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
+    mpMapMerger->Release();
 
-    mapDB->getCurrent()->SetFlagAfterBA();
+    // We optimized the essential graph, so we don't need to do BA
+    mpCurrentKF->getMap()->SetFlagAfterBA();
 
+    // Update the local last loop id var
     mLastLoopKFid = mpCurrentKF->mnId;
+
+    // Force the tracker to relocalize in the new map
+    mpTracker->ForceInlineRelocalisation();
 }
 
 void LoopClosing::SearchAndFuse(KeyFrameAndPose &CorrectedPosesMap)
@@ -575,14 +580,16 @@ void LoopClosing::Release()
     boost::mutex::scoped_lock lock2(mMutexLoopQueue);
     mbStopped = false;
     mbStopRequested = false;
-//    for(list<KeyFrame*>::iterator lit = mlpLoopKeyFrameQueue.begin(), lend=mlpLoopKeyFrameQueue.end(); lit!=lend; lit++)
-//        delete *lit;
+    // We do not need to delete keyframes any more because they are linked to maps
+    //    for(list<KeyFrame*>::iterator lit = mlpLoopKeyFrameQueue.begin(), lend=mlpLoopKeyFrameQueue.end(); lit!=lend; lit++)
+    //        delete *lit;
     mlpLoopKeyFrameQueue.clear();
 }
 
 void LoopClosing::ResetIfRequested()
 {
     boost::mutex::scoped_lock lock(mMutexReset);
+    boost::mutex::scoped_lock lock2(mMutexLoopQueue);
     if(mbResetRequested)
     {
         mlpLoopKeyFrameQueue.clear();

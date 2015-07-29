@@ -34,9 +34,11 @@
 #include "threads/LocalMapping.h"
 #include "threads/LoopClosing.h"
 #include "threads/MapMerging.h"
+#include "threads/Relocalization.h"
 
 #include "util/ORBextractor.h"
 #include "util/Initializer.h"
+#include "util/FpsCounter.h"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/features2d/features2d.hpp>
@@ -54,12 +56,13 @@ class Map;
 class LocalMapping;
 class LoopClosing;
 class MapMerging;
+class Relocalization;
 
 class Tracking: public OrbThread
 {  
 
 public:
-    Tracking(FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, string strSettingPath);
+    Tracking(FramePublisher* pFramePublisher, MapPublisher* pMapPublisher, MapDatabase* pMap, FpsCounter* pfps, string strSettingPath);
 
     enum eTrackingState{
         SYSTEM_NOT_READY=-1,
@@ -73,10 +76,11 @@ public:
     void Run();
 
     void ForceRelocalisation();
+    void ForceInlineRelocalisation();
 
     eTrackingState mState;
-    eTrackingState mLastProcessedState;    
-
+    eTrackingState mLastProcessedState;
+        
     // Current Frame
     Frame mCurrentFrame;
 
@@ -87,9 +91,12 @@ public:
     std::vector<cv::Point3f> mvIniP3D;
     Frame mInitialFrame;
 
-
     void CheckResetByPublishers();
 
+    bool RelocalisationRequested();
+    bool RelocalisationInlineRequested();
+    void ResetRelocalisationRequested();
+    void SetRelocalisationFrame(Frame* frame);
 
 protected:
     void GrabImage(const sensor_msgs::ImageConstPtr& msg);
@@ -99,12 +106,10 @@ protected:
     void CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw);
 
     void Reset();
+    bool RelocalisationInline();
 
     bool TrackPreviousFrame();
     bool TrackWithMotionModel();
-
-    bool RelocalisationRequested();
-    bool Relocalisation();    
 
     void UpdateReference();
     void UpdateReferencePoints();
@@ -116,7 +121,7 @@ protected:
     bool NeedNewKeyFrame();
     void CreateNewKeyFrame();
     
-    void ResetRelocalisationRequested();
+    void UpdateCurrentFrameId();
 
     //ORB
     ORBextractor* mpORBextractor;
@@ -124,7 +129,6 @@ protected:
 
     //BoW
     ORBVocabulary* mpORBVocabulary;
-    KeyFrameDatabase* mpKeyFrameDB;
 
     // Initalization
     Initializer* mpInitializer;
@@ -157,10 +161,12 @@ protected:
     Frame mLastFrame;
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
+    boost::mutex mMutexRelocFrameId;
 
     //Mutex
     boost::mutex mMutexTrack;
     boost::mutex mMutexForceRelocalisation;
+    boost::mutex mMutexForceRelocalisationInline;
 
     //Reset
     bool mbPublisherStopped;
@@ -169,6 +175,7 @@ protected:
 
     //Is relocalisation requested by an external thread? (loop closing)
     bool mbForceRelocalisation;
+    bool mbForceRelocalisationInline;
 
     //Motion Model
     bool mbMotionModel;
@@ -179,6 +186,9 @@ protected:
 
     // Transfor broadcaster (for visualization in rviz)
     tf::TransformBroadcaster mTfBr;
+    
+    // Our fps counter
+    FpsCounter* fps_counter;
 };
 
 } //namespace ORB_SLAM
