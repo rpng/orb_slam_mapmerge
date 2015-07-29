@@ -116,9 +116,12 @@ void MapPoint::SetBadFlag()
 {
     map<KeyFrame*,size_t> obs;
     {
+        boost::mutex::scoped_lock lock3(mMutexIsBad);
+        mbBad=true;
+    }
+    {
         boost::mutex::scoped_lock lock1(mMutexFeatures);
         boost::mutex::scoped_lock lock2(mMutexPos);
-        mbBad=true;
         obs = mObservations;
         mObservations.clear();
     }
@@ -138,11 +141,14 @@ void MapPoint::Replace(MapPoint* pMP)
 
     map<KeyFrame*,size_t> obs;
     {
+        boost::mutex::scoped_lock lock3(mMutexIsBad);
+        mbBad=true;
+    }
+    {
         boost::mutex::scoped_lock lock1(mMutexFeatures);
         boost::mutex::scoped_lock lock2(mMutexPos);
         obs=mObservations;
         mObservations.clear();
-        mbBad=true;
     }
 
     for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
@@ -169,8 +175,7 @@ void MapPoint::Replace(MapPoint* pMP)
 
 bool MapPoint::isBad()
 {
-    boost::mutex::scoped_lock lock(mMutexFeatures);
-    boost::mutex::scoped_lock lock2(mMutexPos);
+    boost::mutex::scoped_lock lock(mMutexIsBad);
     return mbBad;
 }
 
@@ -198,11 +203,13 @@ void MapPoint::ComputeDistinctiveDescriptors()
     vector<cv::Mat> vDescriptors;
 
     map<KeyFrame*,size_t> observations;
+    
+    // Check if bad
+    if(isBad())
+        return;
 
     {
         boost::mutex::scoped_lock lock1(mMutexFeatures);
-        if(mbBad)
-            return;
         observations=mObservations;
     }
 
@@ -285,11 +292,14 @@ void MapPoint::UpdateNormalAndDepth()
     map<KeyFrame*,size_t> observations;
     KeyFrame* pRefKF;
     cv::Mat Pos;
+
+    // Check if bad
+    if(isBad())
+        return;
+
     {
         boost::mutex::scoped_lock lock1(mMutexFeatures);
         boost::mutex::scoped_lock lock2(mMutexPos);
-        if(mbBad)
-            return;
         observations=mObservations;
         pRefKF=mpRefKF;
         Pos = mWorldPos.clone();

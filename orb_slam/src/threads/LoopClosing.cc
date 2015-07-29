@@ -60,10 +60,10 @@ void LoopClosing::Run()
             if(mapDB->getCurrent() != NULL)
             {
                 // Detect loop candidates and check covisibility consistency
-                if(!stopRequested() && DetectLoop())
+                if(DetectLoop())
                 {
                    // Compute similarity transformation [sR|t]
-                   if(!stopRequested() && ComputeSim3())
+                   if(ComputeSim3())
                    {
                        // Perform loop fusion and pose graph optimization
                        ROS_INFO("ORB-SLAM - Loop Close Detected");

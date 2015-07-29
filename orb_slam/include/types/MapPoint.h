@@ -31,19 +31,9 @@
 namespace ORB_SLAM
 {
 
-
-
-
-
-
-
-
-
-
 class ImageFeature;
 class KeyFrame;
 class Map;
-
 
 class MapPoint
 {
@@ -142,6 +132,7 @@ protected:
      boost::mutex mMutexPos;
      boost::mutex mMutexMap;
      boost::mutex mMutexFeatures;
+     boost::mutex mMutexIsBad;
 };
 
 } //namespace ORB_SLAM

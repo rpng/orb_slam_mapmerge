@@ -42,10 +42,10 @@ void MapMerging::Run()
         if(CheckNewKeyFrames())
         {
             // Detect loop candidates
-            if(!stopRequested() && DetectLoop())
+            if(DetectLoop())
             {
                 // Compute similarity transformation [sR|t]
-               if(!stopRequested() &&ComputeSim3())
+               if(ComputeSim3())
                {
                    ROS_INFO("ORB-SLAM - Map Merge Detected");
                    CorrectLoop();

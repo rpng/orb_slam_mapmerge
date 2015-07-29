@@ -42,7 +42,7 @@ public:
 
     void Refresh();
     void PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector<MapPoint*> &vpRefMPs);
-    void PublishKeyFrames(const std::vector<KeyFrame*> &vpKFs);
+    void PublishKeyFrames();
     void PublishCurrentCamera(const cv::Mat &Tcw);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
 
@@ -53,15 +53,27 @@ private:
     void ResetCamFlag();
 
     ros::NodeHandle nh;
-    ros::Publisher publisher;
+    ros::Publisher publisher_cur;
+    ros::Publisher publisher_all;
 
-    visualization_msgs::Marker mPoints;
-    visualization_msgs::Marker mReferencePoints;
-    visualization_msgs::Marker mKeyFrames;
-    visualization_msgs::Marker mReferenceKeyFrames;
-    visualization_msgs::Marker mCovisibilityGraph;
-    visualization_msgs::Marker mMST;
+    // Camera
     visualization_msgs::Marker mCurrentCamera;
+    
+    // Current map
+    visualization_msgs::Marker mPoints_Curr;
+    visualization_msgs::Marker mReferencePoints_Curr;
+    // Current keyframes
+    visualization_msgs::Marker mKeyFrames_Curr;
+    visualization_msgs::Marker mCovisibilityGraph_Curr;
+    visualization_msgs::Marker mMST_Curr;
+    
+    // All maps
+    visualization_msgs::MarkerArray mPoints_All;
+    visualization_msgs::MarkerArray mReferencePoints_All;
+    // All keyframes
+    visualization_msgs::MarkerArray mKeyFrames_All;
+    visualization_msgs::MarkerArray mCovisibilityGraph_All;
+    visualization_msgs::MarkerArray mMST_All;
 
     float fCameraSize;
     float fPointSize;
@@ -70,6 +82,13 @@ private:
     bool mbCameraUpdated;
 
     boost::mutex mMutexCamera;
+    
+    string* MAP_FRAME_ID;
+    string* POINTS_NAMESPACE;
+    string* KEYFRAMES_NAMESPACE;
+    string* GRAPH_NAMESPACE;
+    string* CAMERA_NAMESPACE;
+
 };
 
 } //namespace ORB_SLAM
