@@ -109,7 +109,8 @@ void Relocalization::Relocalisation()
 
     int count =0;
     // Add all keyframe candidates we have
-    for(size_t i=0; i<mapDB->getAll().size(); i++) {
+    // More recent maps are more likely, so we loop backwards
+    for(int i=mapDB->getAll().size()-1; i>=0; i--) {
         // Get all keyframes that match the current one
         vector<KeyFrame*> temp = mapDB->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(mCurrentFrame);
         vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
