@@ -238,12 +238,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     {
         // System is initialized. Track Frame.
         bool bOK;
-        // Get the relocation ID
-        unsigned int relocID = 0;
-        {
-            boost::mutex::scoped_lock lock(mMutexRelocFrameId);
-            relocID = mnLastRelocFrameId;
-        }
+        // Stupid safety check
         if(mapDB->getCurrent() == NULL)
         {
             ROS_ERROR("CURRENT MAP IS NULL");
@@ -253,7 +248,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
 
         // Initial Camera Pose Estimation from Previous Frame (Motion Model or Coarse)
         // If we are not using the motion model, have less then 4 key frames in the map, have an empty velocity vector, or have just had a relocalisation in the past two frames.
-        if(!mbMotionModel || mapDB->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<relocID+2)
+        if(!mbMotionModel || mapDB->getCurrent()->KeyFramesInMap()<4 || mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
         {
             bOK = TrackPreviousFrame();
         }
@@ -688,15 +683,9 @@ bool Tracking::TrackLocalMap()
                 mCurrentFrame.mvpMapPoints[i]->IncreaseFound();
         }
 
-    // Get the relocation ID
-    unsigned int relocID = 0;
-    {
-        boost::mutex::scoped_lock lock(mMutexRelocFrameId);
-        relocID = mnLastRelocFrameId;
-    }
     // Decide if the tracking was successful
     // More restrictive if there was a relocalization recently
-    if(mCurrentFrame.mnId<relocID+mMaxFrames && mnMatchesInliers<50)
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
         return false;
 
     if(mnMatchesInliers<30)
@@ -712,14 +701,8 @@ bool Tracking::NeedNewKeyFrame()
     if(mpLocalMapper->isStopped() || mpLocalMapper->stopRequested())
         return false;
 
-    // Get the relocation ID
-    unsigned int relocID = 0;
-    {
-        boost::mutex::scoped_lock lock(mMutexRelocFrameId);
-        relocID = mnLastRelocFrameId;
-    }
     // Not insert keyframes if not enough frames from last relocalisation have passed
-    if(mCurrentFrame.mnId<relocID+mMaxFrames && mapDB->getCurrent()->KeyFramesInMap()>mMaxFrames)
+    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mapDB->getCurrent()->KeyFramesInMap()>mMaxFrames)
         return false;
 
     // Reference KeyFrame MapPoints
@@ -808,14 +791,8 @@ void Tracking::SearchReferencePointsInFrustum()
     {
         ORBmatcher matcher(0.8);
         int th = 1;
-        // Get the relocation ID
-        unsigned int relocID = 0;
-        {
-            boost::mutex::scoped_lock lock(mMutexRelocFrameId);
-            relocID = mnLastRelocFrameId;
-        }
         // If the camera has been relocalised recently, perform a coarser search
-        if(mCurrentFrame.mnId<relocID+2)
+        if(mCurrentFrame.mnId<mnLastRelocFrameId+2)
             th=5;
         matcher.SearchByProjection(mCurrentFrame,mvpLocalMapPoints,th);
     }
