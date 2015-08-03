@@ -387,10 +387,11 @@ void MapMerging::CorrectLoop()
     mpLocalMapper->RequestStop();
     mpLoopCloser->RequestStop();
     mpRelocalizer->RequestStop();
+    mpTracker->publishersRequest(true);
 
     // Wait until Local Mapping has effectively stopped
     ros::Rate r(1e4);
-    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpRelocalizer->isStopped()))
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpRelocalizer->isStopped() || !mpTracker->publishersStopped()))
     {
         r.sleep();
     }
@@ -571,6 +572,7 @@ void MapMerging::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
     mpLoopCloser->Release();
+    mpTracker->publishersRequest(false);
 
     // Update the local last loop id var
     mLastLoopKFid = mpCurrentKF->mnId;

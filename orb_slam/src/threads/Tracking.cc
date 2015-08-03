@@ -1143,24 +1143,16 @@ void Tracking::SetRelocalisationFrame(Frame* frame)
 
 void Tracking::Reset()
 {
-    {
-        boost::mutex::scoped_lock lock(mMutexReset);
-        mbPublisherStopped = false;
-        mbReseting = true;
-    }
+    // Request publishers to stop
+    publishersRequest(true);
     
     // Save the relocalizer state
     bool relocalizerState = mpRelocalizer->isStopped();
-    
-    bool stopped1 = false;
+
     ros::Rate r1(1e4);
     // Ensure our publishers have stopped
-    while(!stopped1&& ros::ok())
+    while(!publishersStopped() && ros::ok())
     {
-        {
-            boost::mutex::scoped_lock lock(mMutexReset);
-            stopped1 = mbPublisherStopped;
-        }
         r1.sleep();
     }
 
@@ -1214,23 +1206,33 @@ void Tracking::Reset()
     
     // Reset state
     mState = NOT_INITIALIZED;
-
-    {
-        boost::mutex::scoped_lock lock(mMutexReset);
-        mbReseting = false;
-    }
+    
+    // Release publishers
+    publishersRequest(false);
 }
 
-bool Tracking::publisherStopRequested()
+void Tracking::publishersRequest(bool state)
+{
+    boost::mutex::scoped_lock lock(mMutexReset);
+    mbReseting = state;
+}
+
+bool Tracking::publishersStopRequested()
 {
     boost::mutex::scoped_lock lock(mMutexReset);
     return mbReseting;
 }
 
-void Tracking::publishersStop(bool state)
+void Tracking::publishersSetStop(bool state)
 {
     boost::mutex::scoped_lock lock(mMutexReset);
     mbPublisherStopped = state;
+}
+
+bool Tracking::publishersStopped()
+{
+    boost::mutex::scoped_lock lock(mMutexReset);
+    return mbPublisherStopped;
 }
 
 } //namespace ORB_SLAM

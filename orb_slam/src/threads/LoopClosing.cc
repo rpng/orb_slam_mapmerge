@@ -401,10 +401,11 @@ void LoopClosing::CorrectLoop()
     mpLocalMapper->RequestStop();
     mpMapMerger->RequestStop();
     mpRelocalizer->RequestStop();
+    mpTracker->publishersRequest(true);
 
     // Wait until Local Mapping has effectively stopped
     ros::Rate r(1e4);
-    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped()))
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped() || !mpTracker->publishersStopped()))
     {
         r.sleep();
     }
@@ -548,6 +549,7 @@ void LoopClosing::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
     mpMapMerger->Release();
+    mpTracker->publishersRequest(false);
 
     // We optimized the essential graph, so we don't need to do BA
     mpCurrentKF->getMap()->SetFlagAfterBA();

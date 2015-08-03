@@ -138,19 +138,19 @@ int main(int argc, char **argv)
         MapPub.Refresh();
         // If tracking needs to delete a map
         // Check if a stop is requested
-        if(Tracker.publisherStopRequested())
+        if(Tracker.publishersStopRequested())
         {
             FramePub.Reset();
             MapPub.Reset();
             ros::Rate r2(200);
-            while(Tracker.publisherStopRequested() && ros::ok())
+            while(Tracker.publishersStopRequested() && ros::ok())
             {
-                Tracker.publishersStop(true);
+                Tracker.publishersSetStop(true);
                 r2.sleep();
             }
         }
         // Show that we are running
-        Tracker.publishersStop(false);
+        Tracker.publishersSetStop(false);
         // Sleep at our fps
         r1.sleep();
     }

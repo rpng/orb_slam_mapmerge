@@ -271,6 +271,10 @@ void MapPublisher::PublishKeyFrames()
 
         for(size_t i=0, iend=vpKFs.size() ;i<iend; i++)
         {
+            // Skip keyframes that are bad
+            if(vpKFs[i] == NULL || vpKFs[i]->isBad())
+                continue;
+
             cv::Mat Tcw = vpKFs[i]->GetPose();
             cv::Mat Twc = Tcw.inv();
             cv::Mat ow = vpKFs[i]->GetCameraCenter();
@@ -340,6 +344,8 @@ void MapPublisher::PublishKeyFrames()
             {
                 for(vector<KeyFrame*>::iterator vit=vCovKFs.begin(), vend=vCovKFs.end(); vit!=vend; vit++)
                 {
+                    if((*vit) == NULL || (*vit)->isBad())
+                        continue;
                     if((*vit)->mnId<vpKFs[i]->mnId)
                         continue;
                     cv::Mat Ow2 = (*vit)->GetCameraCenter();

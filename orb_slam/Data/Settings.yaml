@@ -1,17 +1,17 @@
 %YAML:1.0
 
 # Camera calibration parameters (OpenCV) 
-Camera.fx: 1268.002010
-Camera.fy: 1265.625940
-Camera.cx: 654.096393
-Camera.cy: 513.270166
+Camera.fx: 819.175789
+Camera.fy: 820.078600
+Camera.cx: 320.547785
+Camera.cy: 229.257318
 
 # Camera distortion paremeters (OpenCV) --
-Camera.k1: -0.208080
-Camera.k2: 0.150372
+Camera.k1: -0.137152
+Camera.k2: 0.278073
 
-Camera.p1: -0.000551
-Camera.p2: -0.001669
+Camera.p1: 0.001670
+Camera.p2: -0.000161
 
 # Camera frames per second 
 Camera.fps: 60.0
@@ -23,7 +23,7 @@ Camera.RGB: 1
 ### Changing the parameters below could seriously degrade the performance of the system
 
 # ORB Extractor: Number of features per image
-ORBextractor.nFeatures: 5000
+ORBextractor.nFeatures: 1000
 
 # ORB Extractor: Scale factor between levels in the scale pyramid   
 # default: 1.2

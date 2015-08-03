@@ -92,8 +92,10 @@ public:
     std::vector<cv::Point3f> mvIniP3D;
     Frame mInitialFrame;
 
-    bool publisherStopRequested();
-    void publishersStop(bool state);
+    void publishersRequest(bool state);
+    bool publishersStopRequested();
+    void publishersSetStop(bool state);
+    bool publishersStopped();
 
     bool RelocalisationRequested();
     bool RelocalisationInlineRequested();
