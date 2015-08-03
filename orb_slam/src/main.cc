@@ -136,7 +136,23 @@ int main(int argc, char **argv)
     {
         FramePub.Refresh();
         MapPub.Refresh();
-        Tracker.CheckResetByPublishers();
+        // If tracking needs to delete a map
+        // Check if a stop is requested
+        if(Tracker.publisherStopRequested())
+        {
+            FramePub.Reset();
+            MapPub.Reset();
+            ros::Rate r2(200);
+            while(Tracker.publisherStopRequested() && ros::ok())
+            {
+                Tracker.publishersStop(true);
+                ROS_INFO("Publishers Stopped");
+                r2.sleep();
+            }
+        }
+        // Show that we are running
+        Tracker.publishersStop(false);
+        // Sleep at our fps
         r1.sleep();
     }
     

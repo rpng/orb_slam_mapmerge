@@ -81,8 +81,9 @@ public:
     eTrackingState mState;
     eTrackingState mLastProcessedState;
         
-    // Current Frame
+    // Frames, these should only be accessed by the frame pub class
     Frame mCurrentFrame;
+    Frame mLastFrame;
 
     // Initialization Variables
     std::vector<int> mvIniLastMatches;
@@ -91,7 +92,8 @@ public:
     std::vector<cv::Point3f> mvIniP3D;
     Frame mInitialFrame;
 
-    void CheckResetByPublishers();
+    bool publisherStopRequested();
+    void publishersStop(bool state);
 
     bool RelocalisationRequested();
     bool RelocalisationInlineRequested();
@@ -158,7 +160,6 @@ protected:
 
     //Last Frame, KeyFrame and Relocalisation Info
     KeyFrame* mpLastKeyFrame;
-    Frame mLastFrame;
     unsigned int mnLastKeyFrameId;
     unsigned int mnLastRelocFrameId;
     boost::mutex mMutexRelocFrameId;

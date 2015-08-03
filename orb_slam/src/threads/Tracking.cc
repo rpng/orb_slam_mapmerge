@@ -45,7 +45,7 @@ namespace ORB_SLAM
 
 
 Tracking::Tracking(FramePublisher *pFramePublisher, MapPublisher *pMapPublisher, MapDatabase *pMap,  FpsCounter* pfps, string strSettingPath):
-    OrbThread(pMap), mState(NO_IMAGES_YET), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher),
+    OrbThread(pMap), mState(NO_IMAGES_YET), mpInitializer(NULL), mpFramePublisher(pFramePublisher), mpMapPublisher(pMapPublisher),
     localMap(NULL), mnLastRelocFrameId(0), mbPublisherStopped(false), mbReseting(false), mbForceRelocalisation(false), mbMotionModel(false)
 {
     // Load camera parameters from settings file
@@ -387,7 +387,7 @@ void Tracking::FirstInitialization()
         for(size_t i=0; i<mCurrentFrame.mvKeysUn.size(); i++)
             mvbPrevMatched[i]=mCurrentFrame.mvKeysUn[i].pt;
 
-        if(mpInitializer)
+        if(mpInitializer != NULL)
             delete mpInitializer;
 
         mpInitializer =  new Initializer(mCurrentFrame,1.0,200);
@@ -1175,12 +1175,25 @@ void Tracking::Reset()
     
     // Save the relocalizer state
     bool relocalizerState = mpRelocalizer->isStopped();
+    
+    bool stopped1 = false;
+    ros::Rate r1(1e4);
+    // Ensure our publishers have stopped
+    while(!stopped1&& ros::ok())
+    {
+        {
+            boost::mutex::scoped_lock lock(mMutexReset);
+            stopped1 = mbPublisherStopped;
+        }
+        r1.sleep();
+    }
 
     // This should be only called if the local map fails
     // We let the map closing thread close all the maps, 
     // and do culling on the maps created
     if(localMap != NULL)
     {
+        // Delete
         delete localMap;
         localMap = NULL;
     }
@@ -1199,16 +1212,10 @@ void Tracking::Reset()
         mpMapMerger->RequestStop();
         mpRelocalizer->RequestStop();
 
-        // Wait till all other threads are stopped
-        // Wait until publishers are stopped
-        bool stopped1 = false;
         ros::Rate r1(1e4);
-        while((!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped() || !stopped1) && ros::ok())
+        // Wait till all other threads are stopped
+        while((!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped() ) && ros::ok())
         {
-            {
-                boost::mutex::scoped_lock lock(mMutexReset);
-                stopped1 = mbPublisherStopped;
-            }
             if(!mpLocalMapper->isStopped())
                 mpLocalMapper->RequestStop();
             if(!mpLoopCloser->isStopped())
@@ -1238,35 +1245,16 @@ void Tracking::Reset()
     }
 }
 
-void Tracking::CheckResetByPublishers()
+bool Tracking::publisherStopRequested()
 {
-    bool bReseting = false;
+    boost::mutex::scoped_lock lock(mMutexReset);
+    return mbReseting;
+}
 
-    {
-        boost::mutex::scoped_lock lock(mMutexReset);
-        bReseting = mbReseting;
-    }
-
-    if(bReseting)
-    {
-        boost::mutex::scoped_lock lock(mMutexReset);
-        mbPublisherStopped = true;
-    }
-
-    // Hold until reset is finished
-    ros::Rate r(500);
-    while(ros::ok())
-    {
-        {
-            boost::mutex::scoped_lock lock(mMutexReset);
-            if(!mbReseting)
-            {
-                mbPublisherStopped=false;
-                break;
-            }
-        }
-        r.sleep();
-    }
+void Tracking::publishersStop(bool state)
+{
+    boost::mutex::scoped_lock lock(mMutexReset);
+    mbPublisherStopped = state;
 }
 
 } //namespace ORB_SLAM

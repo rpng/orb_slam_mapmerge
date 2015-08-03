@@ -24,6 +24,7 @@
 #include "types/MapPoint.h"
 #include "types/Map.h"
 #include "types/MapDatabase.h"
+#include "types/Frame.h"
 
 #include "threads/Tracking.h"
 
@@ -50,6 +51,8 @@ public:
     void Update(Tracking *pTracker);
 
     void Refresh();
+    
+    void Reset();
 
     void SetMapDB(MapDatabase *pMap);
 
@@ -67,6 +70,8 @@ protected:
     vector<bool> mvbOutliers;
 
     vector<MapPoint*> mvpMatchedMapPoints;
+    vector<MapPoint*> lastFrameMapPoints;
+    
     int mnTracked;
     vector<cv::KeyPoint> mvIniKeys;
     vector<int> mvIniMatches;

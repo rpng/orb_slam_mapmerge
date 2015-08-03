@@ -25,8 +25,8 @@
 #include "types/Map.h"
 
 #include <opencv2/core/core.hpp>
-#include <boost/thread.hpp>
-
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 
 namespace ORB_SLAM
 {
@@ -133,6 +133,7 @@ protected:
      boost::mutex mMutexMap;
      boost::mutex mMutexFeatures;
      boost::mutex mMutexIsBad;
+     boost::mutex mMutexDescriptor;
 };
 
 } //namespace ORB_SLAM

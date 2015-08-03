@@ -10,6 +10,7 @@
   <node pkg="rqt_console" type="rqt_console" name="rqt_console" output="log"/>
 
   <node pkg="orb_slam" type="orb_slam" name="orb_slam"  args="Data/ORBvoc.yml Data/Settings.yaml" output="log" launch-prefix="xterm -e gdb --args">
+  <!-- <node pkg="orb_slam" type="orb_slam" name="orb_slam"  args="Data/ORBvoc-Small.yml Data/Settings.yaml" output="screen" launch-prefix="valgrind -tool=memcheck"> -->
  	<!-- <node pkg="orb_slam" type="orb_slam" name="orb_slam"  args="Data/ORBvoc.yml Data/Settings.yaml" cwd="node" output="log"> -->
 		<!-- <remap from="/camera/image_raw" to="/usb_cam/image_raw" /> -->
 	</node>

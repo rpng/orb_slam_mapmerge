@@ -59,15 +59,28 @@ void FramePublisher::Refresh()
     }
 }
 
+void FramePublisher::Reset()
+{
+    boost::mutex::scoped_lock lock(mMutex);
+    mvCurrentKeys.clear();
+    mvbOutliers.clear();
+    mvpMatchedMapPoints.clear();
+    lastFrameMapPoints.clear();
+    mvIniKeys.clear();
+    mvIniMatches.clear();
+}
+
 cv::Mat FramePublisher::DrawFrame()
 {
     cv::Mat im;
     vector<cv::KeyPoint> vIniKeys; // Initialization: KeyPoints in reference frame
     vector<int> vMatches; // Initialization: correspondences with reference keypoints
     vector<cv::KeyPoint> vCurrentKeys; // KeyPoints in current frame
+    
     vector<MapPoint*> vMatchedMapPoints; // Tracked MapPoints in current frame
+    
     int state; // Tracking state
-
+    
     //Copy variable to be used within scoped mutex
     {
         boost::mutex::scoped_lock lock(mMutex);
@@ -91,6 +104,7 @@ cv::Mat FramePublisher::DrawFrame()
         {
             vCurrentKeys = mvCurrentKeys;
             vMatchedMapPoints = mvpMatchedMapPoints;
+            vLastMapPoints = lastFrameMapPoints;
         }
     } // destroy scoped mutex -> release
 
@@ -107,30 +121,31 @@ cv::Mat FramePublisher::DrawFrame()
                 cv::line(im,vIniKeys[i].pt,vCurrentKeys[vMatches[i]].pt,
                         cv::Scalar(0,255,0));
             }
-        }        
+        }
     }
     else if(state==Tracking::WORKING) //TRACKING
     {
         mnTracked=0;
         const float r = 5;
+        int unit = 40;
+
         for(unsigned int i=0;i<vMatchedMapPoints.size();i++)
         {
-            if(vMatchedMapPoints[i] || mvbOutliers[i])
+            if(vMatchedMapPoints[i]==NULL || vMatchedMapPoints[i]->isBad())
+                continue;
+            if(!mvbOutliers[i])
             {
                 cv::Point2f pt1,pt2;
                 pt1.x=vCurrentKeys[i].pt.x-r;
                 pt1.y=vCurrentKeys[i].pt.y-r;
                 pt2.x=vCurrentKeys[i].pt.x+r;
                 pt2.y=vCurrentKeys[i].pt.y+r;
-                if(!mvbOutliers[i])
-                {
-                    cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
-                    cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
-                    mnTracked++;
-                }
+                // Draw
+                cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
+                mnTracked++;
             }
         }
-
     }
 
     cv::Mat imWithInfo;
@@ -214,6 +229,7 @@ void FramePublisher::Update(Tracking *pTracker)
         mvIniKeys=pTracker->mInitialFrame.mvKeys;
         mvIniMatches=pTracker->mvIniMatches;
     }
+
     mState=static_cast<int>(pTracker->mLastProcessedState);
 
     mbUpdated=true;

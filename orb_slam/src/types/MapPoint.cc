@@ -116,14 +116,14 @@ void MapPoint::SetBadFlag()
 {
     map<KeyFrame*,size_t> obs;
     {
-        boost::mutex::scoped_lock lock3(mMutexIsBad);
-        mbBad=true;
-    }
-    {
         boost::mutex::scoped_lock lock1(mMutexFeatures);
         boost::mutex::scoped_lock lock2(mMutexPos);
         obs = mObservations;
         mObservations.clear();
+    }
+    {
+        boost::mutex::scoped_lock lock3(mMutexIsBad);
+        mbBad=true;
     }
     for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
     {
@@ -141,14 +141,14 @@ void MapPoint::Replace(MapPoint* pMP)
 
     map<KeyFrame*,size_t> obs;
     {
-        boost::mutex::scoped_lock lock3(mMutexIsBad);
-        mbBad=true;
-    }
-    {
         boost::mutex::scoped_lock lock1(mMutexFeatures);
         boost::mutex::scoped_lock lock2(mMutexPos);
         obs=mObservations;
         mObservations.clear();
+    }
+    {
+        boost::mutex::scoped_lock lock3(mMutexIsBad);
+        mbBad=true;
     }
 
     for(map<KeyFrame*,size_t>::iterator mit=obs.begin(), mend=obs.end(); mit!=mend; mit++)
@@ -175,7 +175,7 @@ void MapPoint::Replace(MapPoint* pMP)
 
 bool MapPoint::isBad()
 {
-    boost::mutex::scoped_lock lock(mMutexIsBad);
+//    boost::mutex::scoped_lock lock(mMutexIsBad);
     return mbBad;
 }
 
@@ -261,14 +261,14 @@ void MapPoint::ComputeDistinctiveDescriptors()
     }
 
     {
-        boost::mutex::scoped_lock lock(mMutexFeatures);
+        boost::mutex::scoped_lock lock(mMutexDescriptor);
         mDescriptor = vDescriptors[BestIdx].clone();       
     }
 }
 
 cv::Mat MapPoint::GetDescriptor()
 {
-    boost::mutex::scoped_lock lock(mMutexFeatures);
+    boost::mutex::scoped_lock lock(mMutexDescriptor);
     return mDescriptor.clone();
 }
 

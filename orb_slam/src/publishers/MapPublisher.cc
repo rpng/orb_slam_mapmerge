@@ -119,6 +119,10 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     publisher_cur.publish(mCurrentCamera);
 }
 
+void MapPublisher::Reset()
+{
+}
+
 void MapPublisher::Refresh()
 {
     if(isCamUpdated())
@@ -133,7 +137,7 @@ void MapPublisher::Refresh()
 //        vector<MapPoint*> vMapPoints = mpMap->getCurrent()->GetAllMapPoints();
 //        vector<MapPoint*> vRefMapPoints = mpMap->getCurrent()->GetReferenceMapPoints();
 
-//        PublishMapPoints();   
+        PublishMapPoints(vMapPoints, vRefMapPoints);   
         PublishKeyFrames();
         
         mpMap->getCurrent()->ResetUpdated();
@@ -149,7 +153,7 @@ void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector
 
     for(size_t i=0, iend=vpMPs.size(); i<iend;i++)
     {
-        if(vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))
+        if(vpMPs[i] == NULL || vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))
             continue;
         geometry_msgs::Point p;
         cv::Mat pos = vpMPs[i]->GetWorldPos();
@@ -162,7 +166,7 @@ void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector
 
     for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)
     {
-        if((*sit)->isBad())
+        if((*sit) == NULL || (*sit)->isBad())
             continue;
         geometry_msgs::Point p;
         cv::Mat pos = (*sit)->GetWorldPos();

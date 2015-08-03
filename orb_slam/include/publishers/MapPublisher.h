@@ -45,6 +45,8 @@ public:
     void PublishKeyFrames();
     void PublishCurrentCamera(const cv::Mat &Tcw);
     void SetCurrentCameraPose(const cv::Mat &Tcw);
+    
+    void Reset();
 
 private:
 
