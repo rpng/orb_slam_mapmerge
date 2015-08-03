@@ -104,7 +104,6 @@ cv::Mat FramePublisher::DrawFrame()
         {
             vCurrentKeys = mvCurrentKeys;
             vMatchedMapPoints = mvpMatchedMapPoints;
-            vLastMapPoints = lastFrameMapPoints;
         }
     } // destroy scoped mutex -> release
 
@@ -127,12 +126,14 @@ cv::Mat FramePublisher::DrawFrame()
     {
         mnTracked=0;
         const float r = 5;
-        int unit = 40;
 
+        // Loop through each mappoint to display matching orb 2D point
         for(unsigned int i=0;i<vMatchedMapPoints.size();i++)
         {
+            // Ensure we are a valid mappoint
             if(vMatchedMapPoints[i]==NULL || vMatchedMapPoints[i]->isBad())
                 continue;
+            // If not an outlier, display
             if(!mvbOutliers[i])
             {
                 cv::Point2f pt1,pt2;

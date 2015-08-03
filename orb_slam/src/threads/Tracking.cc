@@ -555,7 +555,6 @@ void Tracking::CreateInitialMap(cv::Mat &Rcw, cv::Mat &tcw)
     mpMapMerger->Release();
     
     // We have a map, we don't need to relocalize
-    mpRelocalizer->RequestReset();
     mpRelocalizer->RequestStop();
     
     // Insert our new keyframes into the local mapper

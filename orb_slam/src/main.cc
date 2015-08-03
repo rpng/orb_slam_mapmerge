@@ -146,7 +146,6 @@ int main(int argc, char **argv)
             while(Tracker.publisherStopRequested() && ros::ok())
             {
                 Tracker.publishersStop(true);
-                ROS_INFO("Publishers Stopped");
                 r2.sleep();
             }
         }

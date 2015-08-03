@@ -69,6 +69,8 @@ private:
     visualization_msgs::Marker mCovisibilityGraph_Curr;
     visualization_msgs::Marker mMST_Curr;
     
+    // Clear command
+    visualization_msgs::MarkerArray mDelete_All;
     // All maps
     visualization_msgs::MarkerArray mPoints_All;
     visualization_msgs::MarkerArray mReferencePoints_All;

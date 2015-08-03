@@ -40,7 +40,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     fPointSize=0.01;
     mPoints_Curr.header.frame_id = MAP_FRAME_ID->c_str();
     mPoints_Curr.ns = POINTS_NAMESPACE->c_str();
-    mPoints_Curr.id=0;
+    mPoints_Curr.id=1;
     mPoints_Curr.type = visualization_msgs::Marker::POINTS;
     mPoints_Curr.scale.x=fPointSize;
     mPoints_Curr.scale.y=fPointSize;
@@ -52,7 +52,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     fCameraSize=0.04;
     mKeyFrames_Curr.header.frame_id = MAP_FRAME_ID->c_str();
     mKeyFrames_Curr.ns = KEYFRAMES_NAMESPACE->c_str();
-    mKeyFrames_Curr.id=1;
+    mKeyFrames_Curr.id=2;
     mKeyFrames_Curr.type = visualization_msgs::Marker::LINE_LIST;
     mKeyFrames_Curr.scale.x=0.005;
     mKeyFrames_Curr.pose.orientation.w=1.0;
@@ -64,7 +64,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     //Configure Covisibility Graph
     mCovisibilityGraph_Curr.header.frame_id = MAP_FRAME_ID->c_str();
     mCovisibilityGraph_Curr.ns = GRAPH_NAMESPACE->c_str();
-    mCovisibilityGraph_Curr.id=2;
+    mCovisibilityGraph_Curr.id=3;
     mCovisibilityGraph_Curr.type = visualization_msgs::Marker::LINE_LIST;
     mCovisibilityGraph_Curr.scale.x=0.002;
     mCovisibilityGraph_Curr.pose.orientation.w=1.0;
@@ -76,7 +76,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     //Configure KeyFrames Spanning Tree
     mMST_Curr.header.frame_id = MAP_FRAME_ID->c_str();
     mMST_Curr.ns = GRAPH_NAMESPACE->c_str();
-    mMST_Curr.id=3;
+    mMST_Curr.id=4;
     mMST_Curr.type = visualization_msgs::Marker::LINE_LIST;
     mMST_Curr.scale.x=0.005;
     mMST_Curr.pose.orientation.w=1.0;
@@ -88,7 +88,7 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     //Configure Current Camera
     mCurrentCamera.header.frame_id = MAP_FRAME_ID->c_str();
     mCurrentCamera.ns = CAMERA_NAMESPACE->c_str();
-    mCurrentCamera.id=4;
+    mCurrentCamera.id=5;
     mCurrentCamera.type = visualization_msgs::Marker::LINE_LIST;
     mCurrentCamera.scale.x=0.01;//0.2; 0.03
     mCurrentCamera.pose.orientation.w=1.0;
@@ -107,6 +107,13 @@ MapPublisher::MapPublisher(MapDatabase* pMap):mpMap(pMap), mbCameraUpdated(false
     mReferencePoints_Curr.action=visualization_msgs::Marker::ADD;
     mReferencePoints_Curr.color.r =1.0f;
     mReferencePoints_Curr.color.a = 1.0;
+    
+    // Create our marker array clearer
+    mDelete_All.markers.resize(1);
+    mDelete_All.markers[0].header.frame_id = MAP_FRAME_ID->c_str();
+    mDelete_All.markers[0].ns = GRAPH_NAMESPACE->c_str();
+    mDelete_All.markers[0].id=0;
+    mDelete_All.markers[0].action=3;
 
     //Configure publisher
     publisher_cur = nh.advertise<visualization_msgs::Marker>("ORB_SLAM/Map", 10);
@@ -137,7 +144,7 @@ void MapPublisher::Refresh()
 //        vector<MapPoint*> vMapPoints = mpMap->getCurrent()->GetAllMapPoints();
 //        vector<MapPoint*> vRefMapPoints = mpMap->getCurrent()->GetReferenceMapPoints();
 
-        PublishMapPoints(vMapPoints, vRefMapPoints);   
+//        PublishMapPoints(vMapPoints, vRefMapPoints);   
         PublishKeyFrames();
         
         mpMap->getCurrent()->ResetUpdated();
@@ -226,9 +233,6 @@ void MapPublisher::PublishKeyFrames()
         mKeyFrames_All.markers[j].scale.x=0.005;
         mKeyFrames_All.markers[j].pose.orientation.w=1.0;
         mKeyFrames_All.markers[j].action=visualization_msgs::Marker::ADD;
-        mKeyFrames_All.markers[j].color.b=1.0f;
-        mKeyFrames_All.markers[j].color.r=1.0f;
-        mKeyFrames_All.markers[j].color.g=1.0f;
         mKeyFrames_All.markers[j].color.a = 1.0;
         
         // Create namespace
@@ -389,6 +393,10 @@ void MapPublisher::PublishKeyFrames()
             }
         }
     }
+    
+    // Send a clear command
+    mDelete_All.markers[0].header.stamp = ros::Time::now();
+    publisher_all.publish(mDelete_All);
 
     // Set what time we have updated the current map
     mKeyFrames_Curr.header.stamp = ros::Time::now();
