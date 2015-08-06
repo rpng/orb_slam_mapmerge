@@ -189,7 +189,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     else
         mCurrentFrame = Frame(im,cv_ptr->header.stamp.toSec(),mpIniORBextractor, mapDB->getVocab(),mK,mDistCoef);
 
-     // If we need to relocalize, try to do so
+    // If we need to relocalize, try to do so
     if(RelocalisationRequested())
     {        
         // Add a new frame if we are accepting new frames
@@ -211,6 +211,7 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             mpMapMerger->Release();
             // Stop relocalizing
             mpRelocalizer->RequestStop();
+            publishersRequest(false);
         }
     }
     
@@ -345,29 +346,18 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
         RelocalisationInline();
     }
     
+    // Update our fps counter
+    fps_counter->update();
+    
+    // Publish our topics
+    PublishTopics();
+    
     // Update our two frame queue with the now "old" frame
     mLastFrame = Frame(mCurrentFrame);
     
     // Update drawer
     mpFramePublisher->Update(this);
 
-    // Publish the current camera 
-    if(!mCurrentFrame.mTcw.empty())
-    {
-        cv::Mat Rwc = mCurrentFrame.mTcw.rowRange(0,3).colRange(0,3).t();
-        cv::Mat twc = -Rwc*mCurrentFrame.mTcw.rowRange(0,3).col(3);
-        tf::Matrix3x3 M(Rwc.at<float>(0,0),Rwc.at<float>(0,1),Rwc.at<float>(0,2),
-                        Rwc.at<float>(1,0),Rwc.at<float>(1,1),Rwc.at<float>(1,2),
-                        Rwc.at<float>(2,0),Rwc.at<float>(2,1),Rwc.at<float>(2,2));
-        tf::Vector3 V(twc.at<float>(0), twc.at<float>(1), twc.at<float>(2));
-
-        tf::Transform tfTcw(M,V);
-
-        mTfBr.sendTransform(tf::StampedTransform(tfTcw,ros::Time::now(), "ORB_SLAM/World", "ORB_SLAM/Camera"));
-    }
-
-    // Update our fps counter
-    fps_counter->update();
 }
 
 
@@ -1078,7 +1068,7 @@ bool Tracking::RelocalisationInline()
             boost::mutex::scoped_lock lock2(mMutexRelocFrameId);
             mnLastRelocFrameId = mCurrentFrame.mnId;
         }
-        ROS_INFO("ORB-SLAM - Successful relocalisation to old map.");
+        ROS_INFO("ORB-SLAM - Successful relocalisation to old map. (inline)");
         // We are relocalized, reset it
         ResetRelocalisationRequested();
         // Update working state
@@ -1143,32 +1133,20 @@ void Tracking::SetRelocalisationFrame(Frame* frame)
 
 void Tracking::Reset()
 {
-    // Request publishers to stop
-    publishersRequest(true);
-    
-    // Save the relocalizer state
-    bool relocalizerState = mpRelocalizer->isStopped();
-
-    ros::Rate r1(1e4);
-    // Ensure our publishers have stopped
-    while(!publishersStopped() && ros::ok())
-    {
-        r1.sleep();
-    }
-
     // This should be only called if the local map fails
-    // We let the map closing thread close all the maps, 
-    // and do culling on the maps created
+    // We let the map merging thread close all the maps, 
     if(localMap != NULL)
     {
         // Delete
         delete localMap;
         localMap = NULL;
     }
-    // Else clear the current map
+    // Else erase the current map
     else
     {
-    
+        // Store our map to delete
+        Map* map_to_delete = mapDB->getCurrent();
+        
         // Reset each thread
         mpLocalMapper->RequestReset();
         mpLoopCloser->RequestReset();
@@ -1178,37 +1156,13 @@ void Tracking::Reset()
         mpLocalMapper->RequestStop();
         mpLoopCloser->RequestStop();
         mpMapMerger->RequestStop();
-        mpRelocalizer->RequestStop();
-
-        ros::Rate r1(1e4);
-        // Wait till all other threads are stopped
-        while((!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped() ) && ros::ok())
-        {
-            if(!mpLocalMapper->isStopped())
-                mpLocalMapper->RequestStop();
-            if(!mpLoopCloser->isStopped())
-                mpLoopCloser->RequestStop();
-            if(!mpMapMerger->isStopped())
-                mpMapMerger->RequestStop();
-            if(!mpRelocalizer->isStopped())
-                mpRelocalizer->RequestStop();
-            r1.sleep();
-        }
-
-        // Now that things are stopped
-        // Erase the map
-        mapDB->eraseMap(mapDB->getCurrent());
+        
+        // Erase our map
+        map_to_delete->setErased(true);
     }
-    
-    // Release the relocalizer
-    if(!relocalizerState)
-        mpRelocalizer->Release();
     
     // Reset state
     mState = NOT_INITIALIZED;
-    
-    // Release publishers
-    publishersRequest(false);
 }
 
 void Tracking::publishersRequest(bool state)
@@ -1233,6 +1187,24 @@ bool Tracking::publishersStopped()
 {
     boost::mutex::scoped_lock lock(mMutexReset);
     return mbPublisherStopped;
+}
+
+void Tracking::PublishTopics()
+{
+    // Publish the current camera 
+    if(!mCurrentFrame.mTcw.empty())
+    {
+        cv::Mat Rwc = mCurrentFrame.mTcw.rowRange(0,3).colRange(0,3).t();
+        cv::Mat twc = -Rwc*mCurrentFrame.mTcw.rowRange(0,3).col(3);
+        tf::Matrix3x3 M(Rwc.at<float>(0,0),Rwc.at<float>(0,1),Rwc.at<float>(0,2),
+                        Rwc.at<float>(1,0),Rwc.at<float>(1,1),Rwc.at<float>(1,2),
+                        Rwc.at<float>(2,0),Rwc.at<float>(2,1),Rwc.at<float>(2,2));
+        tf::Vector3 V(twc.at<float>(0), twc.at<float>(1), twc.at<float>(2));
+
+        tf::Transform tfTcw(M,V);
+
+        mTfBr.sendTransform(tf::StampedTransform(tfTcw,ros::Time::now(), "ORB_SLAM/World", "ORB_SLAM/Camera"));
+    }
 }
 
 } //namespace ORB_SLAM

@@ -175,7 +175,7 @@ void MapPoint::Replace(MapPoint* pMP)
 
 bool MapPoint::isBad()
 {
-//    boost::mutex::scoped_lock lock(mMutexIsBad);
+    boost::mutex::scoped_lock lock(mMutexIsBad);
     return mbBad;
 }
 

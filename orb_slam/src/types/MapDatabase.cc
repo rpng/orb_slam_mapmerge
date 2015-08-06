@@ -18,6 +18,7 @@
 #include "types/MapDatabase.h"
 
 #include <ros/ros.h>
+#include <algorithm>
 
 namespace ORB_SLAM
 {
@@ -41,11 +42,24 @@ Map* MapDatabase::getNewMap() {
 
 void MapDatabase::addMap(Map* map) {
     boost::mutex::scoped_lock lock(mapMutex);
+    // Reset flag on current map
+    if(currentMapID > 0 && currentMapID < maps.size()+1)
+        maps.at(currentMapID-1)->ResetUpdated();
+    // Add map
     maps.push_back(map);
     currentMapID = maps.size();
 }
 
-void MapDatabase::eraseMap(Map* m){
+Map* MapDatabase::getMap(int loc) {
+    boost::mutex::scoped_lock lock(mapMutex);
+    // Check that we are in range
+    if(loc < 0 || loc >= (int)maps.size())
+            return NULL;
+    // Success
+    return maps.at(loc);
+}
+
+bool MapDatabase::eraseMap(Map* m){
     boost::mutex::scoped_lock lock(mapMutex);
     // Check to see if it is the current one
     if(currentMapID > 0 && currentMapID < maps.size()+1 && m == maps.at(currentMapID-1))
@@ -57,9 +71,10 @@ void MapDatabase::eraseMap(Map* m){
             Map* temp = maps[i];
             maps.erase(maps.begin()+i);
             delete temp;
-            return;
+            return true;
         }
     }
+    return false;
 }
 
 void MapDatabase::removeMap(Map* m){
@@ -77,10 +92,20 @@ void MapDatabase::removeMap(Map* m){
     }
 }
 
+bool MapDatabase::isContained(Map* m) {
+    boost::mutex::scoped_lock lock(mapMutex);
+    // Search for the map
+    if(std::find(maps.begin(), maps.end(), m) != maps.end())
+        return true;
+    return false;
+}
+
 bool MapDatabase::setMap(Map* m){
     boost::mutex::scoped_lock lock(mapMutex);
     unsigned int id_new = 0;
     for (std::size_t i = 0; i != maps.size(); ++i) {
+        if(maps[i]->getErased())
+            continue;
         if(maps[i] == m) {
             id_new = i+1;
             break;

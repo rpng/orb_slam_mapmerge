@@ -126,6 +126,8 @@ protected:
     void CreateNewKeyFrame();
     
     void UpdateCurrentFrameId();
+    
+    void PublishTopics();
 
     //ORB
     ORBextractor* mpORBextractor;

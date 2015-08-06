@@ -140,14 +140,15 @@ int main(int argc, char **argv)
         // Check if a stop is requested
         if(Tracker.publishersStopRequested())
         {
-            FramePub.Reset();
-            MapPub.Reset();
             ros::Rate r2(200);
             while(Tracker.publishersStopRequested() && ros::ok())
             {
                 Tracker.publishersSetStop(true);
                 r2.sleep();
             }
+            // Clear out our details
+            FramePub.Reset();
+            MapPub.Reset();
         }
         // Show that we are running
         Tracker.publishersSetStop(false);
@@ -158,6 +159,16 @@ int main(int argc, char **argv)
     // Nice new line
     cout << endl;
     
+    std::string path_str;
+    path_str += "mkdir -p ";
+    path_str += ros::package::getPath("orb_slam");
+    path_str += "/generated/";
+    // Create our directory if needed
+    const int dir_err = system(path_str.c_str());
+    if (-1 == dir_err) {
+        cout << "Error creating directory!" << endl;
+    }
+    
     // Clear old generated folder
     boost::filesystem::path path = ros::package::getPath("orb_slam") + "/generated/";
     for (boost::filesystem::directory_iterator end_dir_it, it(path); it!=end_dir_it; ++it) {
@@ -166,6 +177,9 @@ int main(int argc, char **argv)
 
     // Save keyframe poses at the end of the execution
     for (std::size_t i = 0; i < WorldDB.getAll().size(); ++i) {
+        // Check if erased
+        if(WorldDB.getAll().at(i)->getErased())
+            continue;
         // Output stream
         ofstream f;
         // Get keyframes of current map

@@ -111,6 +111,9 @@ void Relocalization::Relocalisation()
     // Add all keyframe candidates we have
     // More recent maps are more likely, so we loop backwards
     for(int i=mapDB->getAll().size()-1; i>=0; i--) {
+        // Ensure we are erased
+        if(mapDB->getAll().at(i)->getErased())
+            continue;
         // Get all keyframes that match the current one
         vector<KeyFrame*> temp = mapDB->getAll().at(i)->GetKeyFrameDatabase()->DetectRelocalisationCandidates(mCurrentFrame);
         vpCandidateKFs.insert(vpCandidateKFs.end(), temp.begin(), temp.end());
@@ -322,18 +325,19 @@ bool Relocalization::relocalizeIfSuccessfull()
         boost::mutex::scoped_lock lock(mMutexFrame);
         boost::mutex::scoped_lock lock2(mMutexSuccessCheck);
         // Set the map
+        // Set map handles making sure the map we want to set is not erased
         if(mapDB->setMap(mapMatch))
         {
             // We do not need to update the map
             mapMatch->ResetUpdated();
-            // Success
-            ROS_INFO("ORB-SLAM - Successful relocalisation to old map.");
             // We are relocalized, reset it
             mpTracker->ResetRelocalisationRequested();
             mpTracker->SetRelocalisationFrame(mCurrentFrame);
             // We should stop, and reset after a success
             RequestReset();
             RequestStop();
+            // Success
+            ROS_INFO("ORB-SLAM - Successful relocalisation to old map. (thread)");
             return true;
         }
         // We are not successfull, reset everything

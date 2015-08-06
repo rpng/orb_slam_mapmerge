@@ -41,7 +41,7 @@ public:
     MapDatabase* mpMap;
 
     void Refresh();
-    void PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector<MapPoint*> &vpRefMPs);
+    void PublishMapPoints();
     void PublishKeyFrames();
     void PublishCurrentCamera(const cv::Mat &Tcw);
     void SetCurrentCameraPose(const cv::Mat &Tcw);

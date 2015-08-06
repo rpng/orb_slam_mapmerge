@@ -140,54 +140,130 @@ void MapPublisher::Refresh()
     }
     if(mpMap->getCurrent() != NULL && mpMap->getCurrent()->isMapUpdated())
     {
-//        vector<KeyFrame*> vKeyFrames = mpMap->getCurrent()->GetAllKeyFrames();
-//        vector<MapPoint*> vMapPoints = mpMap->getCurrent()->GetAllMapPoints();
-//        vector<MapPoint*> vRefMapPoints = mpMap->getCurrent()->GetReferenceMapPoints();
-
-//        PublishMapPoints(vMapPoints, vRefMapPoints);   
+        // Send a clear command
+        mDelete_All.markers[0].header.stamp = ros::Time::now();
+        publisher_all.publish(mDelete_All);
+    
+        PublishMapPoints();   
         PublishKeyFrames();
         
-        mpMap->getCurrent()->ResetUpdated();
+        // Update our reset flag if needed
+        if(mpMap->getCurrent() != NULL)
+            mpMap->getCurrent()->ResetUpdated();
     } 
 }
 
-void MapPublisher::PublishMapPoints(const vector<MapPoint*> &vpMPs, const vector<MapPoint*> &vpRefMPs)
+void MapPublisher::PublishMapPoints()
 {
+    // Clear our old current map
     mPoints_Curr.points.clear();
     mReferencePoints_Curr.points.clear();
-
-    set<MapPoint*> spRefMPs(vpRefMPs.begin(), vpRefMPs.end());
-
-    for(size_t i=0, iend=vpMPs.size(); i<iend;i++)
+    // Clear map array
+    mPoints_All.markers.clear();
+    mReferencePoints_All.markers.clear();
+    // Resize our arrays
+    size_t size = mpMap->getAll().size();
+    mPoints_All.markers.resize(size);
+    mReferencePoints_All.markers.resize(size);
+    
+    // Loop through each map so we can render
+    for(size_t j=0; j < mpMap->getAll().size(); j++)
     {
-        if(vpMPs[i] == NULL || vpMPs[i]->isBad() || spRefMPs.count(vpMPs[i]))
+        // Ensure we are  not erased
+        if(mpMap->getAll().at(j)->getErased())
             continue;
-        geometry_msgs::Point p;
-        cv::Mat pos = vpMPs[i]->GetWorldPos();
-        p.x=pos.at<float>(0);
-        p.y=pos.at<float>(1);
-        p.z=pos.at<float>(2);
 
-        mPoints_Curr.points.push_back(p);
+        // Get our mappoints for the map
+        vector<MapPoint*> vpMPs = mpMap->getMap(j)->GetAllMapPoints();
+        vector<MapPoint*> vpRefMPs = mpMap->getMap(j)->GetReferenceMapPoints();
+        // Create a set so we can compare counts
+        set<MapPoint*> spRefMPs(vpRefMPs.begin(), vpRefMPs.end());
+        
+        // Create namespace
+        std::ostringstream oss;
+        oss << j+1 << " " << *POINTS_NAMESPACE;
+        
+        // Configure Keyframe array
+        mPoints_All.markers[j].header.frame_id = MAP_FRAME_ID->c_str();
+        mPoints_All.markers[j].ns = oss.str().c_str();
+        mPoints_All.markers[j].id=j*size+3;
+        mPoints_All.markers[j].type = visualization_msgs::Marker::POINTS;
+        mPoints_All.markers[j].scale.y=fPointSize;
+        mPoints_All.markers[j].scale.x=fPointSize;
+        mPoints_All.markers[j].pose.orientation.w=1.0;
+        mPoints_All.markers[j].action=visualization_msgs::Marker::ADD;
+        mPoints_All.markers[j].color.a = 1.0;
+        
+        // Configure Keyframe array
+        mReferencePoints_All.markers[j].header.frame_id = MAP_FRAME_ID->c_str();
+        mReferencePoints_All.markers[j].ns = oss.str().c_str();
+        mReferencePoints_All.markers[j].id=j*size+4;
+        mReferencePoints_All.markers[j].type = visualization_msgs::Marker::POINTS;
+        mReferencePoints_All.markers[j].scale.y=fPointSize;
+        mReferencePoints_All.markers[j].scale.x=fPointSize;
+        mReferencePoints_All.markers[j].pose.orientation.w=1.0;
+        mReferencePoints_All.markers[j].action=visualization_msgs::Marker::ADD;
+        mReferencePoints_All.markers[j].color.r = 1.0f;
+        mReferencePoints_All.markers[j].color.a = 1.0;
+        
+        // Set time, created
+        mPoints_All.markers[j].header.stamp = ros::Time::now();
+        mReferencePoints_All.markers[j].header.stamp = ros::Time::now();
+
+        // Loop through mappoints of current map
+        for(size_t i=0, iend=vpMPs.size(); i<iend;i++)
+        {
+            // Check to make sure the mappoint has not been deleted
+            if(!vpMPs[i] || spRefMPs.count(vpMPs[i]))
+                continue;
+            geometry_msgs::Point p;
+            cv::Mat pos = vpMPs[i]->GetWorldPos();
+            p.x=pos.at<float>(0);
+            p.y=pos.at<float>(1);
+            p.z=pos.at<float>(2);
+            
+            // Add to our current map
+            if(mpMap->getMap(j) == mpMap->getCurrent())
+            {
+                mPoints_Curr.points.push_back(p);
+            }
+            // Always add to array
+            mPoints_All.markers[j].points.push_back(p);
+        }
+
+        for(size_t i=0, iend=vpRefMPs.size(); i<iend;i++)
+        {
+            // Check to make sure the mappoint has not been deleted
+            if(!vpRefMPs[i] || vpRefMPs[i] == NULL)
+                continue;
+            geometry_msgs::Point p;
+            cv::Mat pos = vpRefMPs[i]->GetWorldPos();            
+            p.x=pos.at<float>(0);
+            p.y=pos.at<float>(1);
+            p.z=pos.at<float>(2);
+
+            // Add to our current map
+            if(mpMap->getMap(j) == mpMap->getCurrent())
+            {
+                mReferencePoints_Curr.points.push_back(p);
+            }
+            // Always add to array
+            mReferencePoints_All.markers[j].points.push_back(p);
+        }
+        
     }
-
-    for(set<MapPoint*>::iterator sit=spRefMPs.begin(), send=spRefMPs.end(); sit!=send; sit++)
-    {
-        if((*sit) == NULL || (*sit)->isBad())
-            continue;
-        geometry_msgs::Point p;
-        cv::Mat pos = (*sit)->GetWorldPos();
-        p.x=pos.at<float>(0);
-        p.y=pos.at<float>(1);
-        p.z=pos.at<float>(2);
-
-        mReferencePoints_Curr.points.push_back(p);
-    }
-
+    
+    // Set time created
     mPoints_Curr.header.stamp = ros::Time::now();
     mReferencePoints_Curr.header.stamp = ros::Time::now();
+
+    // Publish current
     publisher_cur.publish(mPoints_Curr);
     publisher_cur.publish(mReferencePoints_Curr);
+    
+    // Publish the map array
+    publisher_all.publish(mPoints_All);
+    publisher_all.publish(mReferencePoints_All);
 }
 
 void MapPublisher::PublishKeyFrames()
@@ -207,10 +283,14 @@ void MapPublisher::PublishKeyFrames()
     mMST_All.markers.resize(size);
     
     // Loop through each map so we can render
-    for(size_t j=0; j < size; j++)
+    for(size_t j=0; j < mpMap->getAll().size(); j++)
     {
+        // Ensure we are erased
+        if(mpMap->getAll().at(j)->getErased())
+            continue;
+
         // Get our keyframes for the map
-        vector<KeyFrame*> vpKFs = mpMap->getAll().at(j)->GetAllKeyFrames();
+        vector<KeyFrame*> vpKFs = mpMap->getMap(j)->GetAllKeyFrames();
 
         float d = fCameraSize;
 
@@ -223,7 +303,7 @@ void MapPublisher::PublishKeyFrames()
         
         // Create namespace
         std::ostringstream oss;
-        oss << *KEYFRAMES_NAMESPACE << " " << j+1;
+        oss << j+1 << " " << *KEYFRAMES_NAMESPACE;
         
         // Configure Keyframe array
         mKeyFrames_All.markers[j].header.frame_id = MAP_FRAME_ID->c_str();
@@ -238,7 +318,7 @@ void MapPublisher::PublishKeyFrames()
         // Create namespace
         oss.clear();
         oss.str("");
-        oss << *GRAPH_NAMESPACE << " " << j+1;
+        oss << j+1 << " " << *GRAPH_NAMESPACE;
         
         // Configure graph array
         mCovisibilityGraph_All.markers[j].header.frame_id = MAP_FRAME_ID->c_str();
@@ -301,7 +381,7 @@ void MapPublisher::PublishKeyFrames()
             msgs_p4.z=p4w.at<float>(2);
             
             // Add to our current map
-            if(mpMap->getAll().at(j) == mpMap->getCurrent())
+            if(mpMap->getMap(j) == mpMap->getCurrent())
             {
                 mKeyFrames_Curr.points.push_back(msgs_o);
                 mKeyFrames_Curr.points.push_back(msgs_p1);
@@ -375,7 +455,7 @@ void MapPublisher::PublishKeyFrames()
                 msgs_op.y=Owp.at<float>(1);
                 msgs_op.z=Owp.at<float>(2);
                 // Add to our current map
-                if(mpMap->getAll().at(j) == mpMap->getCurrent())
+                if(mpMap->getMap(j) == mpMap->getCurrent())
                 {
                     mMST_Curr.points.push_back(msgs_o);
                     mMST_Curr.points.push_back(msgs_op);
@@ -386,7 +466,7 @@ void MapPublisher::PublishKeyFrames()
             }
             set<KeyFrame*> sLoopKFs = vpKFs[i]->GetLoopEdges();
             for(set<KeyFrame*>::iterator sit=sLoopKFs.begin(), send=sLoopKFs.end(); sit!=send; sit++)
-            {
+            {            
                 if((*sit)->mnId<vpKFs[i]->mnId)
                     continue;
                 cv::Mat Owl = (*sit)->GetCameraCenter();
@@ -399,10 +479,6 @@ void MapPublisher::PublishKeyFrames()
             }
         }
     }
-    
-    // Send a clear command
-    mDelete_All.markers[0].header.stamp = ros::Time::now();
-    publisher_all.publish(mDelete_All);
 
     // Set what time we have updated the current map
     mKeyFrames_Curr.header.stamp = ros::Time::now();

@@ -401,15 +401,22 @@ void LoopClosing::CorrectLoop()
     mpLocalMapper->RequestStop();
     mpMapMerger->RequestStop();
     mpRelocalizer->RequestStop();
-    mpTracker->publishersRequest(true);
 
     // Wait until Local Mapping has effectively stopped
     ros::Rate r(1e4);
-    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped() || !mpTracker->publishersStopped()))
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped()))
     {
         r.sleep();
     }
 
+    // Wait until publishers have effectively stopped
+//    ros::Rate r2(1e4);
+//    while(ros::ok() && !mpTracker->publishersStopped())
+//    {
+//        mpTracker->publishersRequest(true);
+//        r.sleep();
+//    }
+    
     // Ensure current keyframe is updated
     mpCurrentKF->UpdateConnections();
 

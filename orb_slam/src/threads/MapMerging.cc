@@ -387,14 +387,6 @@ void MapMerging::CorrectLoop()
     mpLocalMapper->RequestStop();
     mpLoopCloser->RequestStop();
     mpRelocalizer->RequestStop();
-    mpTracker->publishersRequest(true);
-
-    // Wait until Local Mapping has effectively stopped
-    ros::Rate r(1e4);
-    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpLoopCloser->isStopped() || !mpRelocalizer->isStopped() || !mpTracker->publishersStopped()))
-    {
-        r.sleep();
-    }
     
     // Get the newest and oldest map ordering
     Map* newest;
@@ -559,12 +551,11 @@ void MapMerging::CorrectLoop()
     mpCurrentKF->AddLoopEdge(mpMatchedKF);
     mpMatchedKF->AddLoopEdge(mpCurrentKF);
 
-
      // Update the current map
     mapDB->setMap(oldest);
     // Remove the map from our list, but keep the data
-    mapDB->removeMap(newest);
-
+//    mapDB->removeMap(newest);
+    newest->setErased(true);
 
     // Force the tracker to relocalize the camera in the updated map
     mpTracker->ForceInlineRelocalisation();
@@ -572,7 +563,6 @@ void MapMerging::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
     mpLoopCloser->Release();
-    mpTracker->publishersRequest(false);
 
     // Update the local last loop id var
     mLastLoopKFid = mpCurrentKF->mnId;

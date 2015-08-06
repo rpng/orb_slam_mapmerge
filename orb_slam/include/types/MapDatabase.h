@@ -51,12 +51,18 @@ public:
     
     // Adds a new map to the database
     void addMap(Map* map);
+    
+    // Gets a map, returns NULL if not there
+    Map* getMap(int loc);
 
     // Removes a map from the database
-    void eraseMap(Map* map);
+    bool eraseMap(Map* map);
     
     // Removes the map, but do not delete data
     void removeMap(Map* m);
+    
+    // Checks if the map is still contained
+    bool isContained(Map* m);
     
     // Set map from the database
     bool setMap(Map* map);

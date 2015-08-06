@@ -188,14 +188,18 @@ void FramePublisher::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
     }
     else if(nState==Tracking::WORKING)
     {
-        int nKFs=0, nMPs=0, size=0, id=0;
+        int nKFs=0, nMPs=0, size_cu=0, size_all=0, id=0;
         if(mpMap->getCurrent() != NULL) {
             nKFs = mpMap->getCurrent()->KeyFramesInMap();
             nMPs = mpMap->getCurrent()->MapPointsInMap();
-            size = mpMap->getAll().size();
+            size_all = mpMap->getAll().size();
             id = mpMap->getCurrentID();
+            // Count how many non-erased maps
+            for(size_t j=0; j < mpMap->getAll().size(); j++)
+                if(!mpMap->getAll().at(j)->getErased())
+                    size_cu++;
         }
-        s1 << "Fps: " << fps_counter->get() << " , Maps: " << size << " , MapID: " << id;
+        s1 << "Fps: " << fps_counter->get() << " , Maps: " << size_cu << " (" << size_all << ") , MapID: " << id;
         s2 << "KFs: " << nKFs << " , MPs: " << nMPs << " , Tracked: " << mnTracked;
     }
     else if(nState==Tracking::SYSTEM_NOT_READY)
