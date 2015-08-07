@@ -32,7 +32,7 @@ MapMerging::MapMerging(MapDatabase *pMap): OrbThread(pMap) {}
 
 void MapMerging::Run()
 {
-    ros::Rate r(400);
+    ros::Rate r(500);
     while(ros::ok())
     {
         // Reset if needed

@@ -40,7 +40,7 @@ LoopClosing::LoopClosing(MapDatabase *pMap):
 
 void LoopClosing::Run()
 {
-    ros::Rate r(200);
+    ros::Rate r(500);
     while(ros::ok())
     {
         // Reset if needed
@@ -71,6 +71,12 @@ void LoopClosing::Run()
                        ROS_INFO("ORB-SLAM - Loop Closed");
                    }
                 }
+            }
+            // If the map is null, we can't handle this keyframe
+            else
+            {
+                // Allow the current keyframe to be deleted now    
+                mpCurrentKF->SetErase();
             }
         }
         
@@ -206,20 +212,19 @@ bool LoopClosing::DetectLoop()
 
 
     // Add Current Keyframe to database
-    mapDB->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
+    if(mapDB->getCurrent() != NULL)
+        mapDB->getCurrent()->GetKeyFrameDatabase()->add(mpCurrentKF);
+    else
+        return false;
 
+    // If we have candidates then we have success
     if(mvpEnoughConsistentCandidates.empty())
     {
         mpCurrentKF->SetErase();
         return false;
     }
-    else
-    {
-        return true;
-    }
-
-    mpCurrentKF->SetErase();
-    return false;
+    // Success
+    return true;
 }
 
 bool LoopClosing::ComputeSim3()
@@ -336,6 +341,7 @@ bool LoopClosing::ComputeSim3()
         }
     }
 
+    // If we do not have a match, allow all our candidates and the current KF to be erased
     if(!bMatch)
     {
         for(int i=0; i<nInitialCandidates; i++)
@@ -377,6 +383,7 @@ bool LoopClosing::ComputeSim3()
             nTotalMatches++;
     }
 
+    // Ensure we have above 40 matches to our matching keyframe
     if(nTotalMatches>=40)
     {
         for(int i=0; i<nInitialCandidates; i++)
@@ -398,24 +405,16 @@ void LoopClosing::CorrectLoop()
 {
     // Send a stop signal to Local Mapping
     // Avoid new keyframes are inserted while correcting the loop
+    // Avoid this map getting combined with another one
     mpLocalMapper->RequestStop();
     mpMapMerger->RequestStop();
-    mpRelocalizer->RequestStop();
 
     // Wait until Local Mapping has effectively stopped
     ros::Rate r(1e4);
-    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped() || !mpRelocalizer->isStopped()))
+    while(ros::ok() && (!mpLocalMapper->isStopped() || !mpMapMerger->isStopped()))
     {
         r.sleep();
     }
-
-    // Wait until publishers have effectively stopped
-//    ros::Rate r2(1e4);
-//    while(ros::ok() && !mpTracker->publishersStopped())
-//    {
-//        mpTracker->publishersRequest(true);
-//        r.sleep();
-//    }
     
     // Ensure current keyframe is updated
     mpCurrentKF->UpdateConnections();
@@ -556,7 +555,6 @@ void LoopClosing::CorrectLoop()
     // Loop closed. Release Local Mapping.
     mpLocalMapper->Release();
     mpMapMerger->Release();
-    mpTracker->publishersRequest(false);
 
     // We optimized the essential graph, so we don't need to do BA
     mpCurrentKF->getMap()->SetFlagAfterBA();

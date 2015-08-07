@@ -112,7 +112,7 @@ int main(int argc, char **argv)
     ORB_SLAM::LoopClosing LoopCloser(&WorldDB);
     ORB_SLAM::MapMerging MapMerger(&WorldDB);
     
-    // Start threads for all three
+    // Start threads for all
     boost::thread trackingThread(&ORB_SLAM::Tracking::Run,&Tracker);
     boost::thread trackingRelocalizer(&ORB_SLAM::Relocalization::Run, &Relocalizer);
     boost::thread localMappingThread(&ORB_SLAM::LocalMapping::Run,&LocalMapper);
@@ -134,6 +134,7 @@ int main(int argc, char **argv)
     ros::Rate r1(fps);
     while (ros::ok())
     {
+        // Call each publisher to update
         FramePub.Refresh();
         MapPub.Refresh();
         // If tracking needs to delete a map
@@ -146,7 +147,7 @@ int main(int argc, char **argv)
                 Tracker.publishersSetStop(true);
                 r2.sleep();
             }
-            // Clear out our details
+            // Clear out all old data
             FramePub.Reset();
             MapPub.Reset();
         }

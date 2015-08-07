@@ -58,7 +58,6 @@ void Relocalization::Run()
             // If so then we do not want to overwrite those results
             if(!isSuccess())
             {
-                 setAcceptingFrames(false);
                 Relocalisation();
             }
         }
@@ -98,8 +97,11 @@ void Relocalization::AddFrame(Frame* newFrame)
 
 
 void Relocalization::Relocalisation()
-{     
-    boost::mutex::scoped_lock lock(mMutexFrame);
+{
+    // We are not accepting frames
+    // This allows the current frame to be thread safe
+    setAcceptingFrames(false);
+
     // Compute Bag of Words Vector
     mCurrentFrame->ComputeBoW();
 
@@ -124,15 +126,15 @@ void Relocalization::Relocalisation()
     // If we don't have any maps, we don't need to relocalize
     if(count == 0) {
         mpTracker->ResetRelocalisationRequested();
-        this->RequestStop();
-        this->setAcceptingFrames(true);
+        RequestStop();
+        setAcceptingFrames(true);
         return;
     }
 
     // Do not continue if we have no candidates
     if(vpCandidateKFs.empty())
     {
-        this->setAcceptingFrames(true);
+        setAcceptingFrames(true);
         return;
     }
 
@@ -292,6 +294,7 @@ void Relocalization::Relocalisation()
         }
         else
         {
+            RequestReset();
             ROS_WARN("ORB-SLAM - Unable to find the map linked to relocalized keyframe.");
         }
     }

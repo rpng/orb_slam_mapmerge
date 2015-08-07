@@ -300,8 +300,6 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             mState = NOT_INITIALIZED;
             // Force relocalisation
             ForceRelocalisation();
-            // Start the relocalizer
-            mpRelocalizer->Release();
         }
 
         // Reset if the camera get lost soon after initialization
@@ -316,6 +314,8 @@ void Tracking::GrabImage(const sensor_msgs::ImageConstPtr& msg)
             mpLocalMapper->RequestStop();
             mpLoopCloser->RequestStop();
             mpMapMerger->RequestStop();
+            // Start the relocalizer
+            mpRelocalizer->Release();
         }
 
         // Update motion model
@@ -918,10 +918,9 @@ bool Tracking::RelocalisationInline()
     if(mapDB->getCurrent() != NULL)
             vpCandidateKFs = mapDB->getCurrent()->GetKeyFrameDatabase()->DetectRelocalisationCandidates(&mCurrentFrame);
     else
-        return false;
-//    vpCandidateKFs.reserve(10);
-//    vpCandidateKFs = mpLastKeyFrame->GetBestCovisibilityKeyFrames(9);
-//    vpCandidateKFs.push_back(mpLastKeyFrame);
+        vpCandidateKFs.reserve(10);
+        vpCandidateKFs = mpLastKeyFrame->GetBestCovisibilityKeyFrames(9);
+        vpCandidateKFs.push_back(mpLastKeyFrame);
 
     // Do not continue if we have no candidates
     if(vpCandidateKFs.empty())
@@ -1160,6 +1159,9 @@ void Tracking::Reset()
         // Erase our map
         map_to_delete->setErased(true);
     }
+    
+    // We need to relocalize
+    mpRelocalizer->Release();
     
     // Reset state
     mState = NOT_INITIALIZED;

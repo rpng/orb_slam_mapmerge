@@ -36,7 +36,7 @@ LocalMapping::LocalMapping(MapDatabase *pMap):
 
 void LocalMapping::Run()
 {
-    ros::Rate r(500);
+    ros::Rate r(600);
     while(ros::ok())
     {
         // Reset if needed
